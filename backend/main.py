@@ -10,7 +10,8 @@ from fastapi.staticfiles import StaticFiles
 from core.config import settings
 from core.detector import YOLODetector
 from core.tracker import CentroidTracker
-from core.activity import ActivityDescriptor
+from core.traffic_analyzer import TrafficActivityDescriptor
+from core.zone_config import VehicleCounter, ZoneMonitor, TrafficStats
 from db.database import init_db
 
 logging.basicConfig(
@@ -34,8 +35,11 @@ async def lifespan(app: FastAPI):
 
     # Load model + pipeline components
     app.state.detector = YOLODetector(model_size=settings.MODEL_SIZE)
-    app.state.tracker = CentroidTracker()
-    app.state.activity = ActivityDescriptor()
+    app.state.tracker  = CentroidTracker()
+    app.state.activity = TrafficActivityDescriptor()          # traffic-specific
+    app.state.counter  = VehicleCounter(line_y=320)          # counting line at y=320
+    app.state.zone_monitor = ZoneMonitor(zones=[])            # configure zones via API
+    app.state.traffic_stats = TrafficStats()
 
     device = "CUDA (GPU)" if torch.cuda.is_available() else "CPU"
     logger.info(f"YOLOv8 loaded on {device} | Model: {settings.MODEL_SIZE}")

@@ -24,9 +24,12 @@ async def stream_websocket(websocket: WebSocket):
     Server returns: JSON with annotated_frame (base64), detections, fps.
     """
     await websocket.accept()
-    detector = websocket.app.state.detector
-    tracker = websocket.app.state.tracker
+    detector     = websocket.app.state.detector
+    tracker      = websocket.app.state.tracker
     activity_desc = websocket.app.state.activity
+    counter      = websocket.app.state.counter
+    zone_monitor = websocket.app.state.zone_monitor
+    traffic_stats = websocket.app.state.traffic_stats
 
     # Reset tracker/activity state for fresh stream session
     activity_desc.reset()
@@ -62,6 +65,9 @@ async def stream_websocket(websocket: WebSocket):
             result = detector.detect_image(frame)
             tracked = tracker.update(result["detections"])
             described = activity_desc.describe(tracked)
+            vehicle_counts = counter.update(described)
+            zone_alerts = zone_monitor.check(described)
+            traffic_stats.update(described, zone_alerts)
             annotated = draw_detections(frame, described)
             b64_out = encode_image_to_base64(annotated, quality=75)
 
@@ -82,6 +88,9 @@ async def stream_websocket(websocket: WebSocket):
                 "fps": round(fps, 1),
                 "inference_ms": round(inference_ms, 1),
                 "frame_count": frame_count,
+                "vehicle_counts": vehicle_counts,
+                "zone_alerts": zone_alerts,
+                "traffic_summary": traffic_stats.summary(),
             }
 
             if websocket.client_state == WebSocketState.CONNECTED:
