@@ -1,3 +1,4 @@
+import os
 import cv2
 import numpy as np
 import logging
@@ -23,9 +24,23 @@ def get_class_color(class_id: int) -> tuple:
 class YOLODetector:
     def __init__(self, model_size: str = "yolov8n"):
         self.model_size = model_size
-        self.model = YOLO(f"{model_size}.pt")
+        model_path = self._resolve_model_path(model_size)
+        self.model = YOLO(model_path)
         self.class_names = self.model.names
-        logger.info(f"Loaded YOLOv8 model: {model_size} | Classes: {len(self.class_names)}")
+        logger.info(f"Loaded model: {model_path} | Classes: {len(self.class_names)}")
+
+    def _resolve_model_path(self, model_size: str) -> str:
+        """
+        Resolve model path:
+        1. Check models/ directory for custom fine-tuned .pt file
+        2. Fall back to ultralytics auto-download (yolov8n.pt etc.)
+        """
+        custom_path = os.path.join(settings.MODELS_DIR, f"{model_size}.pt")
+        if os.path.exists(custom_path):
+            logger.info(f"Using custom model: {custom_path}")
+            return custom_path
+        # Standard ultralytics model — auto-downloaded if not cached
+        return f"{model_size}.pt"
 
     def detect_image(
         self,
