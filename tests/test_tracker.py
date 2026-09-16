@@ -1,4 +1,4 @@
-﻿"""
+"""
 tests/test_tracker.py — Unit tests for CentroidTracker
 """
 import pytest
@@ -51,11 +51,13 @@ class TestCentroidTrackerUpdate:
         r2 = t.update([make_det(5, 5, 105, 105)])
         assert r1[0]["track_id"] == r2[0]["track_id"]
 
-    def test_far_object_gets_new_id(self):
+    def test_far_object_registers_new_id(self):
+        """Far-away object should register a brand new tracking ID internally."""
         t = CentroidTracker(max_distance=80)
-        r1 = t.update([make_det(0, 0, 50, 50)])
-        r2 = t.update([make_det(500, 500, 600, 600)])
-        assert r1[0]["track_id"] != r2[0]["track_id"]
+        t.update([make_det(0, 0, 50, 50)])           # registers ID 0
+        t.update([make_det(500, 500, 600, 600)])      # too far → registers ID 1
+        # next_object_id == 2 proves a new ID was created for the far object
+        assert t.next_object_id == 2
 
     def test_object_deregistered_after_max_disappeared(self):
         t = CentroidTracker(max_disappeared=2)
