@@ -61,9 +61,14 @@ class VehicleCounter:
         self.crossed_ids.clear()
         self.prev_centroids.clear()
 
+    def reset(self):
+        """Alias for reset_counts — clears all session data."""
+        self.reset_counts()
+
     @property
     def total(self) -> int:
         return sum(self.counts.values())
+
 
 
 class ZoneMonitor:
@@ -111,6 +116,10 @@ class TrafficStats:
     def __init__(self, window_frames: int = 150):   # ~5 sec at 30fps
         self.window = window_frames
         self.history: deque = deque(maxlen=window_frames)
+
+    def reset(self):
+        """Clear all accumulated history for a fresh session."""
+        self.history.clear()
 
     def update(self, detections: list, alerts: list):
         self.history.append({

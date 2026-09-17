@@ -31,10 +31,13 @@ async def stream_websocket(websocket: WebSocket):
     zone_monitor = websocket.app.state.zone_monitor
     traffic_stats = websocket.app.state.traffic_stats
 
-    # Reset tracker/activity state for fresh stream session
+    # Reset ALL state for fresh stream session (clears old video/session data)
     activity_desc.reset()
+    counter.reset()
+    zone_monitor.reset() if hasattr(zone_monitor, 'reset') else None
+    traffic_stats.reset()
 
-    logger.info("WebSocket stream connected")
+    logger.info("WebSocket stream connected — all stats reset")
     last_frame_time = 0.0
     frame_count = 0
     fps_window: list[float] = []
