@@ -1,4 +1,5 @@
 const MODELS = [
+  { value: 'yolov8s_visdrone_best', label: '🏆 VisDrone Fine-tuned', tag: '56% mAP · Best', tagColor: 'text-indigo-400' },
   { value: 'yolov8n', label: 'YOLOv8 Nano',   tag: '⚡ Fastest',  tagColor: 'text-green-400' },
   { value: 'yolov8s', label: 'YOLOv8 Small',  tag: '⚖️ Balanced', tagColor: 'text-yellow-400' },
   { value: 'yolov8m', label: 'YOLOv8 Medium', tag: '🎯 Accurate', tagColor: 'text-orange-400' },

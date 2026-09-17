@@ -28,7 +28,7 @@ export default function LiveStream() {
   const [detections, setDetections]       = useState([])
   const [fps, setFps]                     = useState(0)
   const [inferenceMs, setInferenceMs]     = useState(0)
-  const [model, setModel]                 = useState('yolov8n')
+  const [model, setModel]                 = useState('yolov8s_visdrone_best')
   const [frameCount, setFrameCount]       = useState(0)
   const [vehicleCounts, setVehicleCounts] = useState({})
   const [zoneAlerts, setZoneAlerts]       = useState([])
