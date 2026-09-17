@@ -76,7 +76,10 @@ export default function LiveStream() {
   // ── Frame capture ─────────────────────────────────────────────────
   const captureAndSend = useCallback(() => {
     const ws = wsRef.current
-    if (!ws || ws.readyState !== WebSocket.OPEN) return
+    // If WS not ready yet, keep looping until it opens
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      rafRef.current = requestAnimationFrame(captureAndSend); return
+    }
 
     const now = Date.now()
     if (now - lastSendRef.current < FRAME_INTERVAL) {
