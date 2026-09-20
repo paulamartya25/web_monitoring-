@@ -1,0 +1,5 @@
+config,model,imgsz,epochs,map50,precision,recall
+A1_baseline,yolov8n,640,0,0.69,7.89,1.47
+A2_ft_640,yolov8n,640,50,22.29,52.47,27.43
+A3_ft_1280,yolov8n,1280,50,37.25,57.69,44.74
+A4_ft_1280_s,yolov8s,1280,81,56.01,64.10,53.18

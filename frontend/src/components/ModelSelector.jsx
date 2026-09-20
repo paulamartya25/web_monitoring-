@@ -1,8 +1,10 @@
 const MODELS = [
-  { value: 'yolov8s_visdrone_best', label: '🏆 VisDrone Fine-tuned', tag: '56% mAP · Best', tagColor: 'text-indigo-400' },
-  { value: 'yolov8n', label: 'YOLOv8 Nano',   tag: '⚡ Fastest',  tagColor: 'text-green-400' },
-  { value: 'yolov8s', label: 'YOLOv8 Small',  tag: '⚖️ Balanced', tagColor: 'text-yellow-400' },
-  { value: 'yolov8m', label: 'YOLOv8 Medium', tag: '🎯 Accurate', tagColor: 'text-orange-400' },
+  { value: 'yolov8s_visdrone_best',  label: '🏆 VisDrone YOLOv8s 1280px', tag: '56% mAP · Best',    tagColor: 'text-indigo-400' },
+  { value: 'yolov8n_visdrone_1280',  label: '🔬 VisDrone YOLOv8n 1280px', tag: '37% mAP · Ablation A3', tagColor: 'text-purple-400' },
+  { value: 'yolov8n_visdrone_640',   label: '⚗️ VisDrone YOLOv8n 640px',  tag: '22% mAP · Ablation A2', tagColor: 'text-blue-400' },
+  { value: 'yolov8n', label: '⚡ YOLOv8 Nano (COCO)',   tag: 'Baseline · 0.69% on VisDrone',  tagColor: 'text-green-400' },
+  { value: 'yolov8s', label: '⚖️ YOLOv8 Small (COCO)', tag: 'Standard pretrained', tagColor: 'text-yellow-400' },
+  { value: 'yolov8m', label: '🎯 YOLOv8 Medium (COCO)', tag: 'Most accurate COCO', tagColor: 'text-orange-400' },
 ]
 
 export default function ModelSelector({ value, onChange }) {
