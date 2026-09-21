@@ -4,7 +4,11 @@ import { Play, Square, Camera, Wifi, WifiOff, AlertTriangle, Car, User, Bike } f
 import ModelSelector from '../components/ModelSelector'
 import ActivityBadge from '../components/ActivityBadge'
 
-const WS_URL = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws/stream`
+// Cloud-ready URL: uses env var in production (Vercel), proxy in development
+const API_BASE = import.meta.env.VITE_API_BASE || ''
+const WS_BASE  = import.meta.env.VITE_WS_BASE  ||
+  `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}`
+const WS_URL = `${WS_BASE}/ws/stream`
 const FRAME_INTERVAL = 100
 
 // Map class names to icons
