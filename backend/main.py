@@ -3,9 +3,10 @@ import logging
 import torch
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import JSONResponse
 
 from core.config import settings
 from core.detector import YOLODetector
@@ -65,6 +66,31 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ── API Key Authentication (optional — set API_KEY in .env to enable) ─────────
+_API_KEY = os.getenv("API_KEY", "")   # empty = auth disabled
+
+@app.middleware("http")
+async def api_key_middleware(request: Request, call_next):
+    """
+    If API_KEY is configured, require it as:
+      - Header:  X-API-Key: <key>
+      - OR Query: ?api_key=<key>
+    Public routes (health, docs, openapi) are always allowed.
+    """
+    PUBLIC = {"/health", "/docs", "/openapi.json", "/redoc"}
+    if _API_KEY and request.url.path not in PUBLIC:
+        provided = (
+            request.headers.get("X-API-Key")
+            or request.query_params.get("api_key")
+        )
+        if provided != _API_KEY:
+            return JSONResponse(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                content={"detail": "Invalid or missing API key. Pass X-API-Key header."},
+            )
+    return await call_next(request)
+
 
 # ── Static file serving ───────────────────────────────────────────────────────
 app.mount("/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads")
