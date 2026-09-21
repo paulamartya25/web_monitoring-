@@ -23,17 +23,16 @@ dist/
 # Data
 uploads/
 reports/
-models/
 *.db
 *.db-shm
 *.db-wal
 
-# ML models
-*.pt
+# ML — ignore large training artifacts but track our saved models
+runs/
 *.onnx
 *.engine
 *.trt
-runs/
+# Allow tracked model .pt files (see models/ and backend/models/)
 
 # OS
 .DS_Store
