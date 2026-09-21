@@ -62,11 +62,16 @@ class CentroidTracker:
             cy = int((y1 + y2) / 2)
             input_centroids.append(np.array([cx, cy]))
 
+        col_to_oid: dict[int, int] = {}   # input index → track ID
+
         if not self.objects:
-            for c in input_centroids:
+            # First frame — register all detections, build mapping
+            for col, c in enumerate(input_centroids):
+                new_id = self.next_object_id
                 self._register(c)
+                col_to_oid[col] = new_id
         else:
-            object_ids = list(self.objects.keys())
+            object_ids      = list(self.objects.keys())
             object_centroids = list(self.objects.values())
 
             # Distance matrix: existing objects vs new detections
@@ -90,6 +95,7 @@ class CentroidTracker:
                 self.centroids_history[oid].append(input_centroids[col])
                 used_rows.add(row)
                 used_cols.add(col)
+                col_to_oid[col] = oid           # ← record the match
 
             # Handle unmatched existing tracks
             for row in set(range(len(object_ids))) - used_rows:
@@ -98,26 +104,27 @@ class CentroidTracker:
                 if self.disappeared[oid] > self.max_disappeared:
                     self._deregister(oid)
 
-            # Register unmatched new detections
+            # Register unmatched new detections → capture their new IDs
             for col in set(range(len(input_centroids))) - used_cols:
+                new_id = self.next_object_id
                 self._register(input_centroids[col])
+                col_to_oid[col] = new_id        # ← record new ID
 
-        # Attach track_id to detections
+        # Attach track_id using the col→oid mapping (not positional index!)
         result = []
-        assigned_ids = list(self.objects.keys())
         for i, det in enumerate(detections):
-            if i < len(assigned_ids):
-                tid = assigned_ids[i]
-                det = det.copy()
+            det = det.copy()
+            if i in col_to_oid:
+                tid = col_to_oid[i]
                 det["track_id"] = tid
-                det["centroid"] = self.objects[tid].tolist()
+                det["centroid"] = self.objects.get(tid, np.array([0, 0])).tolist()
             else:
-                det = det.copy()
                 det["track_id"] = -1
                 det["centroid"] = [0, 0]
             result.append(det)
 
         return result
+
 
     def get_history(self, track_id: int) -> list:
         """Return recent centroids for a given track ID."""
