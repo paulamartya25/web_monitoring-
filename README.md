@@ -1,15 +1,42 @@
-# 🎯 VisionAI — Real-Time Object Detection Platform
+# 🎯 VisionAI — Real-Time Traffic Surveillance Platform
 
 [![Python](https://img.shields.io/badge/Python-3.11-blue?logo=python)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.111-009688?logo=fastapi)](https://fastapi.tiangolo.com)
 [![YOLOv8](https://img.shields.io/badge/YOLOv8-Ultralytics-purple)](https://ultralytics.com)
 [![React](https://img.shields.io/badge/React-18-61DAFB?logo=react)](https://react.dev)
-[![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3.4-38B2AC?logo=tailwindcss)](https://tailwindcss.com)
+[![Tests](https://img.shields.io/badge/Tests-51%20passing-brightgreen)](tests/)
+[![mAP](https://img.shields.io/badge/mAP%400.5-56.01%25-blue)](experiments/ablation_results.csv)
 [![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker)](https://docker.com)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
-> A **production-grade, full-stack real-time object detection platform** powered by YOLOv8.  
-> Supports live webcam streaming, image/video file upload, per-object activity description (like CCTV analytics), and a full ML evaluation pipeline.
+> A **production-grade, full-stack real-time traffic surveillance platform** powered by a custom  
+> fine-tuned YOLOv8s model trained on VisDrone2019 — achieving **56% mAP@0.5** on aerial drone footage.  
+> Supports live CCTV/webcam streaming, image/video upload, per-object behavior analysis, vehicle counting, and zone alerting.
+
+---
+
+## 🎬 Demo
+
+| Live Stream | Upload Detection |
+|---|---|
+| ![Live Stream](https://via.placeholder.com/400x225/1e293b/60a5fa?text=Live+Stream+Demo) | ![Upload](https://via.placeholder.com/400x225/1e293b/34d399?text=Upload+Detection+Demo) |
+
+> 📹 **[▶ Watch Full Demo Video](#)** — Real-time car, bus, pedestrian detection on traffic footage
+
+---
+
+## 🏆 Model Performance
+
+Fine-tuned YOLOv8s on **VisDrone2019-DET** (38,759 instances, 10 classes, 81 epochs):
+
+| Config | Model | Resolution | mAP@0.5 | Precision | Recall |
+|---|---|---|---|---|---|
+| A1 Baseline (COCO) | YOLOv8n | 640px | 0.69% | 7.89% | 1.47% |
+| A2 Fine-tuned | YOLOv8n | 640px | 22.29% | 52.47% | 27.43% |
+| A3 Fine-tuned Hi-Res | YOLOv8n | 1280px | 37.25% | 57.69% | 44.74% |
+| **A4 Ours (Best)** | **YOLOv8s** | **1280px** | **56.01%** | **64.10%** | **53.18%** |
+
+> 81× improvement over COCO pretrained baseline. See full [ablation results](experiments/ablation_results.csv).
 
 ---
 
