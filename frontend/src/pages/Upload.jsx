@@ -56,6 +56,17 @@ export default function Upload() {
     }
   }
 
+  // Download annotated image from base64
+  const handleDownloadImage = () => {
+    if (!result?.annotated_image) return
+    const link = document.createElement('a')
+    link.href = `data:image/jpeg;base64,${result.annotated_image}`
+    const baseName = file?.name?.replace(/\.[^.]+$/, '') || 'detection'
+    link.download = `${baseName}_detected.jpg`
+    link.click()
+    toast.success('Image downloaded!')
+  }
+
   const confColor = (c) => c >= 0.7 ? 'text-green-400' : c >= 0.5 ? 'text-yellow-400' : 'text-red-400'
 
   return (
@@ -145,14 +156,30 @@ export default function Upload() {
               {/* Annotated image */}
               {result.fileType === 'image' && result.annotated_image && (
                 <div>
-                  <p className="text-xs text-gray-500 mb-2">Annotated Result</p>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-xs text-gray-500">Annotated Result</p>
+                    <button
+                      onClick={handleDownloadImage}
+                      className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500
+                        text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      Download Image
+                    </button>
+                  </div>
                   <img
                     src={`data:image/jpeg;base64,${result.annotated_image}`}
                     alt="annotated"
-                    className="rounded-xl border border-gray-800 w-full"
+                    className="rounded-xl border border-gray-800 w-full cursor-pointer hover:opacity-90 transition-opacity"
+                    onClick={handleDownloadImage}
+                    title="Click to download"
                   />
+                  <p className="text-xs text-gray-600 text-center mt-1">
+                    💡 Click image to download
+                  </p>
                 </div>
               )}
+
 
               {/* Video download */}
               {result.fileType === 'video' && (
