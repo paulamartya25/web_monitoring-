@@ -49,13 +49,16 @@ class TrafficActivityDescriptor:
             displacement = self._displacement(track_id)
             det["displacement_px"] = round(displacement, 2)
 
-            # Speed estimate only for traffic classes (not pedestrians, unknown objects)
-            # Calibration: 1px ≈ 0.1 km/h at typical CCTV height. Cap at 200 km/h (sanity check).
-            raw_speed = displacement * 0.12 * 30  # ×30fps
+            # SPEED NOTE: This is RELATIVE pixel displacement, NOT true calibrated speed.
+            # Formula: displacement_px × scale × fps  (scale factor is empirically chosen)
+            # True speed estimation requires: camera intrinsics, mounting height,
+            # homography matrix, and GPS ground-truth calibration.
+            # Use this as a motion-intensity indicator, NOT an absolute km/h value.
+            raw_speed = displacement * 0.12 * 30   # px/frame × empirical scale × fps
             if cls_name in VEHICLE_CLASSES:
                 det["estimated_speed_kmh"] = round(min(raw_speed, 200.0), 1)
             else:
-                det["estimated_speed_kmh"] = 0.0  # No speed shown for people/unknown
+                det["estimated_speed_kmh"] = 0.0   # not shown for pedestrians/unknown
 
             # Assign activity label
             activity = self._label(cls_name, track_id, displacement, i, tracked_detections)
