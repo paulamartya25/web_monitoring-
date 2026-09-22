@@ -7,221 +7,153 @@
 [![Tests](https://img.shields.io/badge/Tests-51%20passing-brightgreen)](tests/)
 [![CI](https://github.com/paulamartya25/web_monitoring-/actions/workflows/ci.yml/badge.svg)](https://github.com/paulamartya25/web_monitoring-/actions/workflows/ci.yml)
 [![mAP](https://img.shields.io/badge/mAP%400.5-56.01%25-blue)](experiments/ablation_results.csv)
-[![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker)](https://docker.com)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
-> A **production-grade, full-stack real-time traffic surveillance platform** powered by a custom  
-> fine-tuned YOLOv8s model trained on VisDrone2019 — achieving **56% mAP@0.5** on aerial drone footage.  
-> Supports live CCTV/webcam streaming, image/video upload, per-object behavior analysis, vehicle counting, and zone alerting.
+> Real-time traffic surveillance system using a custom fine-tuned YOLOv8s model on VisDrone2019 — **56% mAP@0.5**, 81 epochs, 10 object classes.
 
 ---
 
-## 🎬 Demo
+## 🧠 Machine Learning & Deep Learning
 
-| Live Stream | Upload Detection |
-|---|---|
-| ![Live Stream](https://via.placeholder.com/400x225/1e293b/60a5fa?text=Live+Stream+Demo) | ![Upload](https://via.placeholder.com/400x225/1e293b/34d399?text=Upload+Detection+Demo) |
-
-> 📹 **[▶ Watch Full Demo Video](#)** — Real-time car, bus, pedestrian detection on traffic footage
-
----
-
-## 🏆 Model Performance
-
-Fine-tuned YOLOv8s on **VisDrone2019-DET** (38,759 instances, 10 classes, 81 epochs):
-
-| Config | Model | Resolution | mAP@0.5 | Precision | Recall |
-|---|---|---|---|---|---|
-| A1 Baseline (COCO) | YOLOv8n | 640px | 0.69% | 7.89% | 1.47% |
-| A2 Fine-tuned | YOLOv8n | 640px | 22.29% | 52.47% | 27.43% |
-| A3 Fine-tuned Hi-Res | YOLOv8n | 1280px | 37.25% | 57.69% | 44.74% |
-| **A4 Ours (Best)** | **YOLOv8s** | **1280px** | **56.01%** | **64.10%** | **53.18%** |
-
-> 81× improvement over COCO pretrained baseline. See full [ablation results](experiments/ablation_results.csv).
+- **YOLOv8 (You Only Look Once v8)** — Single-stage real-time object detection architecture
+- **Transfer Learning** — Fine-tuned pretrained YOLOv8n/s weights on domain-specific VisDrone dataset
+- **Custom Dataset Training** — VisDrone2019-DET (38,759 annotated instances, 10 traffic classes)
+- **Multi-scale Training** — 640×640 and 1280×1280 input resolution experiments
+- **Data Augmentation** — Mosaic, flipping, scaling, HSV jitter during training
+- **Early Stopping** — Training halted at 81 epochs based on validation mAP plateau
+- **Ablation Study** — 4-configuration systematic experiment (A1–A4) measuring impact of model size and resolution
+- **mAP@0.5 / mAP@0.5:0.95** — Standard COCO-style object detection evaluation metrics
+- **Precision, Recall, F1-Score** — Per-class and overall model performance metrics
+- **Confusion Matrix** — Class-level prediction error analysis
+- **PR Curve (Precision-Recall Curve)** — Threshold-independent model performance visualization
+- **ROC-AUC** — One-vs-rest per-class confidence score ranking quality
+- **Confidence Thresholding** — Post-processing filter to suppress low-confidence detections
+- **IoU (Intersection over Union)** — Bounding box overlap metric used in NMS and evaluation
+- **NMS (Non-Maximum Suppression)** — Removes duplicate bounding boxes for the same object
 
 ---
 
-## ✨ Features
+## 👁️ Computer Vision
 
-| Feature | Description |
-|---|---|
-| 🎥 **Live Webcam** | Real-time detection at 10–30 FPS via WebSocket stream |
-| 📁 **File Upload** | Detect in images (JPEG/PNG) and videos (MP4/AVI/MOV) |
-| 🧠 **Activity Labels** | Per-object behavior: "Walking", "Running", "Interacting" — like CCTV |
-| 🔭 **Object Tracking** | Persistent IDs across frames using centroid tracker |
-| 📊 **Evaluation Pipeline** | mAP, F1, Precision, Recall, ROC-AUC, Confusion Matrix on datasets |
-| 📈 **Analytics Dashboard** | Detection history charts, class frequency, CSV export |
-| 🐳 **Docker Ready** | Single `docker-compose up` command |
-| ☁️ **Codespaces Ready** | Develop in browser with GitHub Codespaces |
-
----
-
-## 🚀 Quick Start
-
-### Option A — GitHub Codespaces (Recommended, No Installation)
-
-1. Push this repo to GitHub
-2. Click **Code → Open in Codespaces**
-3. Wait for setup (auto-installs dependencies)
-4. In terminal:
-   ```bash
-   docker-compose up
-   ```
-5. Open the forwarded port 3000 → **Your app is live in the browser!**
+- **Bounding Box Regression** — Predicting [x1, y1, x2, y2] coordinates for detected objects
+- **BGR ↔ RGB Conversion** — OpenCV reads BGR; YOLOv8 expects RGB input
+- **JPEG Base64 Encoding** — Encoding annotated frames as base64 strings for WebSocket transmission
+- **Frame Sampling** — Sending every Nth frame over WebSocket to control bandwidth
+- **Centroid Tracking** — Persistent object ID assignment across frames using Euclidean distance
+- **Hungarian Algorithm (greedy)** — Optimal assignment of detected objects to existing tracks
+- **Cosine/Euclidean Distance** — Measuring centroid proximity for track association (scipy)
+- **Displacement Vector** — Per-object pixel movement between frames used for activity estimation
+- **Aspect Ratio Preservation** — Letterboxing input frames before inference
+- **Annotated Frame Rendering** — Drawing bounding boxes, class labels, confidence scores with OpenCV
+- **SAHI (Sliced Inference)** — Tiled inference for small object detection in high-resolution images
 
 ---
 
-### Option B — Docker (Local)
+## 🔄 Object Tracking & Behavior Analysis
 
-```bash
-# 1. Clone the repo
-git clone https://github.com/yourusername/visionai.git
-cd visionai
-
-# 2. Copy environment variables
-cp .env.example .env
-
-# 3. Start everything
-docker-compose up --build
-
-# App: http://localhost:3000
-# API: http://localhost:8000/docs
-```
+- **Multi-Object Tracking (MOT)** — Maintaining consistent IDs for multiple objects across video frames
+- **Track History (Deque)** — Sliding window of recent centroids (maxlen=30) per track ID
+- **Track Deregistration** — Removing lost tracks after `max_disappeared` frames
+- **Rule-Based Activity Classification** — Pixel displacement thresholds map to Stationary / Walking / Running / Speeding / Parked
+- **Class-Aware Activity Labels** — Vehicles get "Moving/Parked/Speeding"; pedestrians get "Walking/Running/Standing"
+- **Proximity Detection** — Euclidean distance between centroids to detect interacting objects
+- **Illegal Parking Detection** — Tracking consecutive stopped frames > threshold (2 seconds)
+- **Vehicle Counting** — Line-crossing event detection using centroid Y-coordinate comparison
+- **Zone Monitoring** — Polygon-based region of interest alerting
 
 ---
 
-### Option C — Local Development (No Docker)
+## ⚙️ Backend & API Engineering
 
-**Backend:**
-```bash
-cd backend
-pip install -r requirements.txt
-cp ../.env.example .env
-uvicorn main:app --reload --port 8000
-```
-
-**Frontend:**
-```bash
-cd frontend
-npm install
-npm run dev
-# → http://localhost:3000
-```
-
----
-
-## 📋 Usage
-
-### Live Webcam Detection
-1. Open `/live` in the browser
-2. Click **Start Detection**
-3. Grant camera permission
-4. See bounding boxes + activity labels in real time!
-
-### Upload Image / Video
-1. Open `/upload`
-2. Drag & drop an image or video
-3. Adjust confidence threshold
-4. Click **Detect Objects**
-5. Download annotated video or view annotated image inline
-
-### Evaluate on a Dataset
-```bash
-# Quick test (128 COCO images, auto-downloaded)
-python evaluation/run_eval.py --dataset coco128
-
-# Custom dataset
-python evaluation/run_eval.py --dataset custom --data-path ./evaluation/datasets/my_data/data.yaml
-
-# Choose model
-python evaluation/run_eval.py --dataset coco128 --model yolov8s
-```
-
-**Metrics generated:** mAP@0.5, mAP@0.5:0.95, Precision, Recall, F1, Confusion Matrix, ROC-AUC, PR Curve
+- **FastAPI** — Async Python web framework for REST API and WebSocket endpoints
+- **WebSocket Protocol** — Full-duplex bidirectional communication for real-time video streaming
+- **Async/Await (asyncio)** — Non-blocking I/O for concurrent frame processing
+- **Pydantic Settings** — Type-safe configuration loading from `.env` file
+- **Dependency Injection** — FastAPI's `app.state` for sharing detector/tracker across requests
+- **Lifespan Context Manager** — Model loading on startup, cleanup on shutdown
+- **HTTP Middleware** — API key authentication middleware protecting all routes
+- **CORS Middleware** — Cross-Origin Resource Sharing for frontend-backend communication
+- **SQLAlchemy (Async)** — ORM for asynchronous database operations
+- **aiosqlite** — Async SQLite driver for detection history persistence
+- **Multipart File Upload** — `python-multipart` for image/video file ingestion
+- **Static File Serving** — FastAPI StaticFiles for serving uploaded/annotated media
+- **Hot Model Reload** — Swapping YOLOv8 model at runtime without server restart
+- **Request Logging** — Structured logging with timestamps and log levels
 
 ---
 
-## 🌐 API Reference
+## 🖥️ Frontend Engineering
 
-| Method | Endpoint | Description |
-|---|---|---|
-| `POST` | `/detect/image` | Detect objects in an uploaded image |
-| `POST` | `/detect/video` | Detect objects in an uploaded video |
-| `GET` | `/detect/log` | Get detection history (paginated) |
-| `WS` | `/ws/stream` | Live webcam WebSocket stream |
-| `POST` | `/evaluate/run` | Start dataset evaluation |
-| `GET` | `/evaluate/results` | List evaluation runs |
-| `GET` | `/evaluate/chart/{id}/{type}` | Get chart image (confusion_matrix, roc_curve, pr_curve) |
-| `GET` | `/health` | Health check + model info |
-| `POST` | `/model/reload` | Hot-swap YOLOv8 model at runtime |
-
-Full interactive docs: **http://localhost:8000/docs**
-
----
-
-## 📁 Project Structure
-
-```
-real_time_object_detection/
-├── backend/
-│   ├── main.py              # FastAPI app
-│   ├── core/
-│   │   ├── detector.py      # YOLOv8 inference wrapper
-│   │   ├── tracker.py       # Centroid object tracker
-│   │   ├── activity.py      # Behavior description engine
-│   │   └── evaluator.py     # ML metrics engine
-│   ├── routers/
-│   │   ├── detect.py        # Image + video endpoints
-│   │   ├── stream.py        # WebSocket stream
-│   │   └── evaluate.py      # Evaluation endpoints
-│   └── utils/               # Drawing, video processing
-│
-├── frontend/
-│   └── src/
-│       ├── pages/           # LiveStream, Upload, Evaluate, Dashboard
-│       └── components/      # Navbar, ActivityBadge, MetricsCard, ModelSelector
-│
-├── evaluation/
-│   ├── run_eval.py          # CLI evaluation script
-│   └── datasets/            # Place dataset files here
-│
-├── docker-compose.yml
-└── .devcontainer/           # GitHub Codespaces config
-```
+- **React 18** — Component-based UI with hooks (`useState`, `useEffect`, `useRef`, `useCallback`)
+- **Vite** — Fast build tool and dev server with HMR (Hot Module Replacement)
+- **Tailwind CSS** — Utility-first CSS for responsive dark-theme UI
+- **WebSocket Client** — Browser-native WebSocket API for live frame streaming
+- **Canvas API** — `HTMLCanvasElement` for rendering annotated frames in real time
+- **requestAnimationFrame (RAF)** — Smooth 60fps frame capture loop from webcam
+- **MediaDevices API** — `getUserMedia()` for webcam access in the browser
+- **Axios** — HTTP client for REST API calls with upload progress tracking
+- **React Dropzone** — Drag-and-drop file upload component
+- **Base64 Blob Download** — Converting base64 annotated image to downloadable file
+- **Environment Variables (Vite)** — `VITE_API_BASE` / `VITE_WS_BASE` for cloud vs local config
+- **Lucide React** — Icon library for UI elements
 
 ---
 
-## 🏭 Industrial Extensions Roadmap
+## 📊 Evaluation & Metrics Pipeline
 
-| Feature | How to Add |
-|---|---|
-| **Multi-camera** | Separate WebSocket channel per camera ID |
-| **Intrusion alerts** | Zone config → email/webhook on boundary crossing |
-| **PPE detection** | Fine-tune YOLOv8 on helmet/vest dataset |
-| **Edge deployment** | `model.export(format='tensorrt')` → Jetson Nano |
-| **Cloud deploy** | Docker → GCP Cloud Run / AWS ECS / Railway.app |
-| **PDF reports** | Add reportlab/weasyprint for detection report export |
-| **SaaS API** | Add API key auth + rate limiting middleware |
+- **model.val()** — Ultralytics built-in validation for mAP computation on dataset
+- **scikit-learn Metrics** — `confusion_matrix`, `precision_recall_curve`, `roc_curve`, `auc`, `f1_score`
+- **Per-Class Evaluation** — Metrics computed independently for each of the 10 VisDrone classes
+- **CSV Export** — Ablation results saved to `experiments/ablation_results.csv`
+- **Matplotlib / Seaborn** — Confusion matrix heatmap, PR curve, ROC-AUC chart generation
 
 ---
 
-## 📄 License
+## 🗄️ Data & Storage
 
+- **SQLite** — Lightweight embedded relational database for detection history
+- **Async SQLAlchemy ORM** — Detection and EvaluationRun table models
+- **VisDrone2019-DET** — Aerial drone dataset: 10 classes, 288 video sequences, 261,908 frames
+- **YAML Dataset Config** — Ultralytics data.yaml format specifying train/val/test paths and class names
+- **Model Checkpointing** — `best.pt` saved at peak validation mAP during training
+
+---
+
+## 🔧 Software Engineering
+
+- **Centroid Tracker (col→oid mapping)** — Correct Hungarian match-based ID assignment (fixed index-based bug)
+- **Unit Testing (pytest)** — 51 tests across tracker, traffic analyzer, zone config modules
+- **Test Isolation** — Each test creates fresh component instances; no shared state
+- **Continuous Integration (GitHub Actions)** — Auto-runs 51 tests on every push to master
+- **Dockerization** — `Dockerfile` for backend containerization
+- **Docker Compose** — Multi-service orchestration (backend + frontend)
+- **Git Commit Discipline** — Conventional commits (`feat:`, `fix:`, `docs:`, `ci:`, `chore:`)
+- **Environment Separation** — `.env.development` vs `.env.production` for local/cloud config
+- **API Key Auth Middleware** — Optional `X-API-Key` header protection (enabled via `.env`)
+- **`.gitignore`** — Excludes venv, `__pycache__`, uploads, DB files
+
+---
+
+## ☁️ Deployment & DevOps
+
+- **Vercel** — Frontend CDN deployment with automatic GitHub integration
+- **Oracle Cloud Always Free** — ARM VM (4 vCPU, 24GB RAM) for backend hosting
+- **Docker on Cloud** — Containerized backend deployment with `--restart unless-stopped`
+- **SCP (Secure Copy)** — Transferring model `.pt` files to cloud VM over SSH
+- **iptables** — Firewall rule to open port 8000 on Oracle Cloud Ubuntu VM
+- **GitHub Actions CI** — `ubuntu-latest` runner, Python 3.11, pip cache, pytest
 
 ---
 
 ## ⚠️ Known Limitations
 
-Being honest about what this system does and doesn't do:
-
 | Limitation | Detail |
 |---|---|
-| **Domain mismatch** | VisDrone models are trained on aerial/drone footage. Accuracy drops on ground-level webcam streams due to viewpoint difference. Use COCO models for ground-level cameras. |
-| **Speed is not calibrated** | The `~X km/h` figure is relative pixel displacement scaled by an empirical factor — NOT true speed. Accurate speed needs camera intrinsics + homography. |
-| **Activity labels are rule-based** | "Walking/Running/Stopped" are derived from pixel displacement thresholds — not pose estimation or action recognition. |
-| **SQLite** | Not suitable for high-concurrency production. PostgreSQL recommended for multi-user deployment. |
-| **No GPU on free cloud** | Oracle Cloud free tier is CPU-only → ~1–3 FPS inference (vs 15+ FPS on GPU). |
-| **mAP ceiling** | VisDrone state-of-the-art is ~70%+ (with SAHI tiling + transformers). Our 56% is a solid baseline, not SOTA. |
+| **Domain mismatch** | VisDrone models trained on aerial footage — accuracy drops on ground-level webcam |
+| **Speed not calibrated** | `~X km/h` = relative pixel displacement × empirical scale, NOT true speed |
+| **Activity labels** | Rule-based pixel displacement thresholds — not pose estimation |
+| **SQLite** | Not suitable for high-concurrency production; PostgreSQL recommended |
+| **mAP ceiling** | VisDrone SOTA is ~70%+ with SAHI + transformers; our 56% is a strong baseline |
 
 ---
 
