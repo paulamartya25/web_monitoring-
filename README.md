@@ -5,6 +5,7 @@
 [![YOLOv8](https://img.shields.io/badge/YOLOv8-Ultralytics-purple)](https://ultralytics.com)
 [![React](https://img.shields.io/badge/React-18-61DAFB?logo=react)](https://react.dev)
 [![Tests](https://img.shields.io/badge/Tests-51%20passing-brightgreen)](tests/)
+[![CI](https://github.com/paulamartya25/web_monitoring-/actions/workflows/ci.yml/badge.svg)](https://github.com/paulamartya25/web_monitoring-/actions/workflows/ci.yml)
 [![mAP](https://img.shields.io/badge/mAP%400.5-56.01%25-blue)](experiments/ablation_results.csv)
 [![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker)](https://docker.com)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
@@ -206,4 +207,22 @@ real_time_object_detection/
 
 ## 📄 License
 
-MIT © 2026 VisionAI
+
+---
+
+## ⚠️ Known Limitations
+
+Being honest about what this system does and doesn't do:
+
+| Limitation | Detail |
+|---|---|
+| **Domain mismatch** | VisDrone models are trained on aerial/drone footage. Accuracy drops on ground-level webcam streams due to viewpoint difference. Use COCO models for ground-level cameras. |
+| **Speed is not calibrated** | The `~X km/h` figure is relative pixel displacement scaled by an empirical factor — NOT true speed. Accurate speed needs camera intrinsics + homography. |
+| **Activity labels are rule-based** | "Walking/Running/Stopped" are derived from pixel displacement thresholds — not pose estimation or action recognition. |
+| **SQLite** | Not suitable for high-concurrency production. PostgreSQL recommended for multi-user deployment. |
+| **No GPU on free cloud** | Oracle Cloud free tier is CPU-only → ~1–3 FPS inference (vs 15+ FPS on GPU). |
+| **mAP ceiling** | VisDrone state-of-the-art is ~70%+ (with SAHI tiling + transformers). Our 56% is a solid baseline, not SOTA. |
+
+---
+
+MIT © 2026 Amartya Paul
