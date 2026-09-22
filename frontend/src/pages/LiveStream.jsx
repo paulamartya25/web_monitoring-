@@ -38,6 +38,11 @@ export default function LiveStream() {
   const [zoneAlerts, setZoneAlerts]       = useState([])
   const [trafficSummary, setTrafficSummary] = useState(null)
 
+  // Camera mode — aerial models work best with drone/overhead cameras
+  const AERIAL_MODELS = new Set(['yolov8s_visdrone_best', 'best_1280', 'best_640'])
+  const isAerialModel = AERIAL_MODELS.has(model)
+
+
   // ── WebSocket ─────────────────────────────────────────────────────
   const connectWS = useCallback(() => {
     if (wsRef.current?.readyState === WebSocket.OPEN) return
@@ -178,6 +183,27 @@ export default function LiveStream() {
         </div>
       )}
 
+      {/* Camera Mode Banner */}
+      <div className={`mb-4 rounded-xl p-3 border flex items-start gap-3
+        ${isAerialModel
+          ? 'bg-indigo-900/20 border-indigo-600/40'
+          : 'bg-yellow-900/20 border-yellow-600/40'}`}>
+        <span className="text-xl shrink-0">{isAerialModel ? '📡' : '📷'}</span>
+        <div className="flex-1">
+          <p className={`text-sm font-semibold ${isAerialModel ? 'text-indigo-300' : 'text-yellow-300'}`}>
+            {isAerialModel ? 'Aerial / Drone Camera Mode' : 'Ground-Level Camera Mode'}
+          </p>
+          <p className="text-xs text-gray-400 mt-0.5">
+            {isAerialModel
+              ? 'VisDrone fine-tuned model — optimised for overhead drone & CCTV footage. For standard webcams, accuracy may be lower due to viewpoint difference.'
+              : 'COCO pretrained model — works best with ground-level cameras (webcam, dashcam, eye-level CCTV). For aerial/drone footage, switch to a VisDrone model.'}
+          </p>
+        </div>
+        {isAerialModel && (
+          <span className="text-xs bg-indigo-700/50 text-indigo-200 px-2 py-0.5 rounded-full shrink-0">56% mAP</span>
+        )}
+      </div>
+
       <div className="grid grid-cols-5 gap-4">
         {/* Video feed — 60% */}
         <div className="col-span-3 space-y-3">
@@ -260,8 +286,11 @@ export default function LiveStream() {
                       </span>
                     )}
                     {det.estimated_speed_kmh > 0 && (
-                      <span className={`text-xs font-mono ${speedColor(det.estimated_speed_kmh)}`}>
-                        ~{det.estimated_speed_kmh} km/h
+                      <span
+                        className={`text-xs font-mono ${speedColor(det.estimated_speed_kmh)}`}
+                        title="Relative motion intensity (pixel displacement). Not a calibrated speed — true speed requires camera calibration."
+                      >
+                        ~{det.estimated_speed_kmh} <span className="text-gray-500">km/h*</span>
                       </span>
                     )}
                   </div>
