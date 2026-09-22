@@ -1,0 +1,15 @@
+﻿# Lightweight requirements for CI testing only
+# Does NOT include ultralytics/opencv (not needed for unit tests)
+numpy==1.26.4
+scipy==1.13.0
+pytest==8.2.0
+pytest-mock==3.15.0
+pytest-anyio==0.0.0
+anyio==4.3.0
+fastapi==0.111.0
+pydantic==2.7.1
+pydantic-settings==2.2.1
+sqlalchemy==2.0.30
+aiosqlite==0.20.0
+python-dotenv==1.0.1
+httpx==0.27.0
