@@ -7,30 +7,86 @@
   cursor: none !important;
 }
 
-/* ── Base dark theme ───────────────────────────────────────── */
-@layer base {
-  body {
-    @apply bg-gray-950 text-gray-100 font-sans;
-  }
-  * {
-    @apply border-gray-800;
-  }
+/* ══════════════════════════════════════════════════════════════
+   WARM AMBER DARK THEME  (Facto-inspired)
+   Overrides Tailwind gray palette → warm brown/amber
+══════════════════════════════════════════════════════════════ */
+:root {
+  --warm-950: #090603;
+  --warm-900: #120d06;
+  --warm-800: #1e160a;
+  --warm-700: #2d2010;
+  --warm-600: #3d2d16;
+  --amber:    #f59e0b;
+  --amber-d:  #d97706;
+  --amber-dim: rgba(245,158,11,0.12);
+  --cream:    #fef3c7;
+  --muted:    #92400e;
+  --border:   #2a1d10;
 }
 
-/* ── Scrollbar ─────────────────────────────────────────────── */
+/* Base */
+@layer base {
+  body {
+    background-color: var(--warm-950);
+    color: var(--cream);
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+  * { border-color: var(--border); }
+}
+
+/* Override Tailwind grays → warm */
+.bg-gray-950    { background-color: var(--warm-950) !important; }
+.bg-gray-900    { background-color: var(--warm-900) !important; }
+.bg-gray-800    { background-color: var(--warm-800) !important; }
+.bg-gray-700    { background-color: var(--warm-700) !important; }
+.border-gray-800{ border-color: var(--border) !important; }
+.border-gray-700{ border-color: #3d2d16 !important; }
+.hover\:bg-gray-800:hover { background-color: var(--warm-800) !important; }
+.bg-gray-800\/50{ background-color: rgba(30,22,10,0.5) !important; }
+.bg-gray-800\/30{ background-color: rgba(30,22,10,0.3) !important; }
+
+/* Text overrides */
+.text-gray-100  { color: var(--cream) !important; }
+.text-gray-300  { color: #fcd58a !important; }
+.text-gray-400  { color: #b45309 !important; }
+.text-gray-500  { color: #92400e !important; }
+.text-gray-600  { color: #78350f !important; }
+.text-gray-700  { color: #78350f !important; }
+.text-white     { color: var(--cream) !important; }
+
+/* Navbar */
+.navbar-bg  { background-color: var(--warm-900); border-color: var(--border); }
+.navbar-text { color: var(--cream); }
+.nav-link   { color: #b45309; }
+.nav-link:hover { color: var(--amber); }
+
+/* Active nav: change indigo → amber */
+.bg-indigo-600\/20 { background-color: var(--amber-dim) !important; }
+.border-indigo-600\/40 { border-color: rgba(245,158,11,0.4) !important; }
+.text-indigo-300   { color: var(--amber) !important; }
+.text-indigo-400   { color: var(--amber-d) !important; }
+.text-indigo-500   { color: var(--amber) !important; }
+.bg-indigo-600     { background-color: var(--amber-d) !important; }
+.bg-indigo-600\/10 { background-color: var(--amber-dim) !important; }
+.border-indigo-600\/30 { border-color: rgba(245,158,11,0.3) !important; }
+.hover\:bg-indigo-500:hover { background-color: var(--amber) !important; }
+.accent-indigo-500 { accent-color: var(--amber) !important; }
+
+/* Scrollbar */
 @layer utilities {
   .scrollbar-thin {
     scrollbar-width: thin;
-    scrollbar-color: #374151 transparent;
+    scrollbar-color: #3d2d16 transparent;
   }
   .scrollbar-thin::-webkit-scrollbar { width: 6px; }
   .scrollbar-thin::-webkit-scrollbar-thumb {
-    background: #374151;
+    background: #3d2d16;
     border-radius: 3px;
   }
 }
 
-/* ── Lamp swing animation ──────────────────────────────────── */
+/* ── Lamp swing ────────────────────────────────────────────── */
 @keyframes lampSwing {
   0%   { transform: rotate(0deg); }
   15%  { transform: rotate(18deg); }
@@ -41,64 +97,30 @@
   100% { transform: rotate(0deg); }
 }
 
-/* ── Scanner sweep animation ───────────────────────────────── */
+/* ── Scanner sweep ─────────────────────────────────────────── */
 @keyframes scanSweep {
   from { transform: rotate(0deg); }
   to   { transform: rotate(360deg); }
 }
 
-/* ── Navbar theme-aware classes ────────────────────────────── */
-.navbar-bg  { background: #111827; }
-.navbar-text { color: #f9fafb; }
-.nav-link   { color: #9ca3af; }
-
-/* ══════════════════════════════════════════════════════════════
-   LIGHT THEME OVERRIDES
-   Applied when <html data-theme="light">
-══════════════════════════════════════════════════════════════ */
-[data-theme="light"] body            { background: #f1f5f9; color: #0f172a; }
-[data-theme="light"] .navbar-bg      { background: #ffffff; border-color: #e2e8f0; }
-[data-theme="light"] .navbar-text    { color: #0f172a; }
-[data-theme="light"] .nav-link       { color: #475569; }
-
-/* Backgrounds */
-[data-theme="light"] .bg-gray-950   { background-color: #f1f5f9 !important; }
-[data-theme="light"] .bg-gray-900   { background-color: #ffffff !important; }
-[data-theme="light"] .bg-gray-800   { background-color: #e2e8f0 !important; }
-[data-theme="light"] .bg-gray-800\/50 { background-color: rgba(226,232,240,0.5) !important; }
-[data-theme="light"] .hover\:bg-gray-800:hover { background-color: #e2e8f0 !important; }
-[data-theme="light"] .bg-gray-700   { background-color: #cbd5e1 !important; }
-
-/* Text */
-[data-theme="light"] .text-white     { color: #0f172a !important; }
-[data-theme="light"] .text-gray-100  { color: #1e293b !important; }
-[data-theme="light"] .text-gray-300  { color: #334155 !important; }
-[data-theme="light"] .text-gray-400  { color: #475569 !important; }
-[data-theme="light"] .text-gray-500  { color: #64748b !important; }
-[data-theme="light"] .text-gray-600  { color: #94a3b8 !important; }
-[data-theme="light"] .text-gray-700  { color: #cbd5e1 !important; }
-
-/* Borders */
-[data-theme="light"] .border-gray-800 { border-color: #e2e8f0 !important; }
-[data-theme="light"] .border-gray-700 { border-color: #cbd5e1 !important; }
-[data-theme="light"] * { border-color: #e2e8f0; }
-
-/* Detection cards in light mode */
-[data-theme="light"] .bg-red-900\/20   { background-color: rgba(254,226,226,0.5) !important; }
-[data-theme="light"] .bg-indigo-900\/20 { background-color: rgba(238,242,255,0.7) !important; }
-[data-theme="light"] .bg-yellow-900\/20 { background-color: rgba(255,251,235,0.7) !important; }
-
-/* Scrollbar in light mode */
-[data-theme="light"] .scrollbar-thin {
-  scrollbar-color: #cbd5e1 transparent;
+/* ── Fact-style pulse glow ─────────────────────────────────── */
+@keyframes amberPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(245,158,11,0.4); }
+  50%       { box-shadow: 0 0 0 6px rgba(245,158,11,0); }
 }
-[data-theme="light"] .scrollbar-thin::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-}
+.amber-pulse { animation: amberPulse 2s ease-in-out infinite; }
 
-/* Toast in light mode */
-[data-theme="light"] .go2072408551 {
-  background: #ffffff !important;
-  color: #0f172a !important;
-  border: 1px solid #e2e8f0 !important;
-}
+/* ── Light theme overrides ─────────────────────────────────── */
+[data-theme="light"] body         { background: #fafaf5; color: #1c1009; }
+[data-theme="light"] .navbar-bg   { background: #fff8e8; border-color: #fde68a; }
+[data-theme="light"] .navbar-text { color: #78350f; }
+[data-theme="light"] .nav-link    { color: #92400e; }
+[data-theme="light"] .bg-gray-950 { background-color: #fafaf5 !important; }
+[data-theme="light"] .bg-gray-900 { background-color: #fff8e8 !important; }
+[data-theme="light"] .bg-gray-800 { background-color: #fef3c7 !important; }
+[data-theme="light"] .border-gray-800 { border-color: #fde68a !important; }
+[data-theme="light"] .text-white  { color: #1c1009 !important; }
+[data-theme="light"] .text-gray-100 { color: #292110 !important; }
+[data-theme="light"] .text-gray-400 { color: #92400e !important; }
+[data-theme="light"] .text-gray-500 { color: #b45309 !important; }
+[data-theme="light"] * { border-color: #fde68a; }

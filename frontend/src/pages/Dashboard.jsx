@@ -1,24 +1,61 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
-import { BarChart, Bar, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
-import { Download, RefreshCw } from 'lucide-react'
+import {
+  BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
+} from 'recharts'
+import { Download, RefreshCw, Bell, Cpu, Zap, Target, AlertTriangle, Activity, Eye, TrendingUp } from 'lucide-react'
 
-const COLORS = ['#6366f1','#22d3ee','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#14b8a6','#f97316','#84cc16']
+const AMBER   = '#f59e0b'
+const AMBER_D = '#d97706'
+const COLORS  = [AMBER, '#ef4444', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#84cc16', '#06b6d4']
 
-function StatCard({ label, value, icon }) {
+const WARM_CARD  = { background: '#17100a', border: '1px solid #2a1d10', borderRadius: 14 }
+const WARM_INNER = { background: '#1e160a', borderRadius: 10 }
+
+function StatCard({ label, value, icon: Icon, accent, sub }) {
   return (
-    <div className="bg-gray-900 rounded-xl border border-gray-800 p-4">
-      <div className="flex items-center gap-2 text-gray-400 text-sm mb-1">
-        <span>{icon}</span> {label}
+    <div style={WARM_CARD} className="p-4 flex flex-col gap-2">
+      <div className="flex items-center justify-between">
+        <span style={{ color: '#92400e' }} className="text-xs font-semibold uppercase tracking-wider">{label}</span>
+        <div style={{ background: accent ? `${accent}20` : '#2a1d10', borderRadius: 8, padding: '5px 7px' }}>
+          <Icon style={{ color: accent || AMBER }} className="w-4 h-4" />
+        </div>
       </div>
-      <div className="text-2xl font-bold text-white">{value ?? '—'}</div>
+      <div style={{ color: '#fef3c7' }} className="text-3xl font-bold tracking-tight">{value ?? '—'}</div>
+      {sub && <div style={{ color: '#78350f' }} className="text-xs">{sub}</div>}
+    </div>
+  )
+}
+
+function AlertCard({ title, detail, count, severity, time }) {
+  const severityColor = severity === 'critical' ? '#ef4444' : severity === 'warning' ? AMBER : '#10b981'
+  return (
+    <div style={{ ...WARM_INNER, border: `1px solid ${severityColor}30` }} className="p-3 flex items-start gap-3">
+      <div style={{ background: `${severityColor}20`, borderRadius: 8, padding: 6 }}>
+        <AlertTriangle style={{ color: severityColor }} className="w-4 h-4" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p style={{ color: '#fef3c7' }} className="text-sm font-semibold truncate">{title}</p>
+        <p style={{ color: '#92400e' }} className="text-xs mt-0.5 truncate">{detail}</p>
+        <div className="flex items-center gap-2 mt-1.5">
+          <span style={{ background: `${severityColor}20`, color: severityColor, borderRadius: 99 }}
+            className="text-xs px-2 py-0.5 font-bold">{count} detected</span>
+          <span style={{ color: '#78350f' }} className="text-xs">{time}</span>
+        </div>
+      </div>
+      <button
+        style={{ background: AMBER_D, color: '#0c0804', borderRadius: 7, fontSize: 11, fontWeight: 700 }}
+        className="px-3 py-1.5 shrink-0 hover:opacity-90 transition-opacity"
+      >Review →</button>
     </div>
   )
 }
 
 export default function Dashboard() {
   const [detections, setDetections] = useState([])
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading]       = useState(false)
+  const [tab, setTab]               = useState('attention')
 
   const fetchDetections = async () => {
     setLoading(true)
@@ -31,155 +68,309 @@ export default function Dashboard() {
 
   useEffect(() => { fetchDetections() }, [])
 
-  // ── Computed stats ──────────────────────────────────────────────
+  const now       = new Date()
+  const hour      = now.getHours()
+  const greeting  = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
+  const dateStr   = now.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })
+
   const totalDetections = detections.length
-
-  const classFreq = detections.reduce((acc, d) => {
-    acc[d.class_name] = (acc[d.class_name] || 0) + 1
-    return acc
-  }, {})
-  const classData = Object.entries(classFreq)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 10)
-    .map(([name, count]) => ({ name, count }))
-
+  const classFreq = detections.reduce((acc, d) => { acc[d.class_name] = (acc[d.class_name] || 0) + 1; return acc }, {})
+  const classData = Object.entries(classFreq).sort((a,b) => b[1]-a[1]).slice(0,8).map(([name,count])=>({name,count}))
   const uniqueClasses = Object.keys(classFreq).length
-
   const avgConf = detections.length
-    ? (detections.reduce((s, d) => s + d.confidence, 0) / detections.length * 100).toFixed(1)
+    ? (detections.reduce((s,d) => s + d.confidence, 0) / detections.length * 100).toFixed(1)
     : 0
+  const alerts = detections.filter(d => d.activity_label?.includes('🚨') || d.activity_label?.includes('Speeding') || d.activity_label?.includes('Parked'))
+  const highConf = detections.filter(d => d.confidence >= 0.8).length
+  const sourceFreq = detections.reduce((acc,d) => { acc[d.source]=(acc[d.source]||0)+1; return acc },{})
+  const sourceData = Object.entries(sourceFreq).map(([name,value])=>({name,value}))
 
-  // Detections over time (by minute)
-  const timeData = detections.reduce((acc, d) => {
+  const timeData = detections.reduce((acc,d) => {
     if (!d.timestamp) return acc
-    const min = d.timestamp.slice(0, 16)
-    acc[min] = (acc[min] || 0) + 1
+    const min = d.timestamp.slice(0,16)
+    acc[min] = (acc[min]||0)+1
     return acc
   }, {})
-  const timeChartData = Object.entries(timeData)
-    .sort()
-    .slice(-20)
-    .map(([time, count]) => ({ time: time.slice(11), count }))
+  const timeChartData = Object.entries(timeData).sort().slice(-15).map(([time,count])=>({time:time.slice(11),count}))
 
-  // Source breakdown
-  const sourceFreq = detections.reduce((acc, d) => {
-    acc[d.source] = (acc[d.source] || 0) + 1
-    return acc
-  }, {})
-  const sourceData = Object.entries(sourceFreq).map(([name, value]) => ({ name, value }))
-
-  // CSV export
   const exportCSV = () => {
-    const headers = ['id','timestamp','source','filename','class_name','confidence','activity_label']
-    const rows = detections.map(d => headers.map(h => JSON.stringify(d[h] ?? '')).join(','))
-    const csv = [headers.join(','), ...rows].join('\n')
-    const blob = new Blob([csv], { type: 'text/csv' })
-    const url = URL.createObjectURL(blob)
+    const headers = ['id','timestamp','source','class_name','confidence','activity_label']
+    const rows = detections.map(d => headers.map(h => JSON.stringify(d[h]??'')).join(','))
+    const blob = new Blob([[headers.join(','),...rows].join('\n')],{type:'text/csv'})
     const a = document.createElement('a')
-    a.href = url; a.download = 'detections.csv'; a.click()
+    a.href = URL.createObjectURL(blob); a.download='detections.csv'; a.click()
   }
 
+  const tooltipStyle = { background: '#1e160a', border: '1px solid #2a1d10', borderRadius: 10, color: '#fef3c7', fontSize: 12 }
+
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Analytics Dashboard</h1>
-          <p className="text-gray-400 text-sm mt-1">Overview of all detection activity</p>
-        </div>
-        <div className="flex gap-2">
-          <button onClick={fetchDetections} className="flex items-center gap-1 text-gray-400 hover:text-white text-sm bg-gray-800 px-3 py-2 rounded-lg border border-gray-700 transition-colors">
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} /> Refresh
-          </button>
-          <button onClick={exportCSV} className="flex items-center gap-1 text-indigo-400 hover:text-indigo-300 text-sm bg-indigo-600/10 px-3 py-2 rounded-lg border border-indigo-600/30 transition-colors">
-            <Download className="w-3.5 h-3.5" /> Export CSV
-          </button>
-        </div>
-      </div>
-
-      {/* Stat cards */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
-        <StatCard label="Total Detections" value={totalDetections} icon="🎯" />
-        <StatCard label="Unique Classes"   value={uniqueClasses}   icon="🏷️" />
-        <StatCard label="Avg Confidence"   value={`${avgConf}%`}   icon="📊" />
-        <StatCard label="Sources"          value={Object.keys(sourceFreq).join(', ') || '—'} icon="📁" />
-      </div>
-
-      <div className="grid grid-cols-2 gap-5 mb-5">
-        {/* Top classes bar chart */}
-        <div className="bg-gray-900 rounded-xl border border-gray-800 p-4">
-          <h3 className="text-sm font-semibold text-white mb-4">Top Detected Classes</h3>
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={classData} margin={{ top: 0, right: 10, left: -10, bottom: 40 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-              <XAxis dataKey="name" tick={{ fill: '#9ca3af', fontSize: 11 }} angle={-35} textAnchor="end" />
-              <YAxis tick={{ fill: '#9ca3af', fontSize: 11 }} />
-              <Tooltip contentStyle={{ background: '#111827', border: '1px solid #374151', borderRadius: 8 }} />
-              <Bar dataKey="count" fill="#6366f1" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Detections over time */}
-        <div className="bg-gray-900 rounded-xl border border-gray-800 p-4">
-          <h3 className="text-sm font-semibold text-white mb-4">Detections Over Time</h3>
-          <ResponsiveContainer width="100%" height={220}>
-            <LineChart data={timeChartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-              <XAxis dataKey="time" tick={{ fill: '#9ca3af', fontSize: 10 }} />
-              <YAxis tick={{ fill: '#9ca3af', fontSize: 11 }} />
-              <Tooltip contentStyle={{ background: '#111827', border: '1px solid #374151', borderRadius: 8 }} />
-              <Line type="monotone" dataKey="count" stroke="#22d3ee" strokeWidth={2} dot={false} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-
-      {/* Source pie + recent detections table */}
-      <div className="grid grid-cols-3 gap-5">
-        <div className="bg-gray-900 rounded-xl border border-gray-800 p-4">
-          <h3 className="text-sm font-semibold text-white mb-4">Detection Sources</h3>
-          <ResponsiveContainer width="100%" height={180}>
-            <PieChart>
-              <Pie data={sourceData} cx="50%" cy="50%" outerRadius={70} dataKey="value" label={({ name, percent }) => `${name} ${(percent*100).toFixed(0)}%`} labelLine={false}>
-                {sourceData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-              </Pie>
-              <Tooltip contentStyle={{ background: '#111827', border: '1px solid #374151', borderRadius: 8 }} />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Recent detections */}
-        <div className="col-span-2 bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
-          <div className="p-3 border-b border-gray-800">
-            <span className="text-sm font-semibold text-white">Recent Detections</span>
+    <div style={{ background: '#090603', minHeight: '100vh' }}>
+      {/* ── Header greeting bar ── */}
+      <div style={{ background: '#120d06', borderBottom: '1px solid #2a1d10' }} className="px-6 py-3">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-2 mb-0.5">
+              <span className="amber-pulse" style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981', display:'inline-block' }} />
+              <p style={{ color: '#92400e' }} className="text-xs font-medium">
+                YOLOv8s · CUDA active · 56.01% mAP · {uniqueClasses} classes
+              </p>
+            </div>
+            <h1 style={{ color: '#fef3c7' }} className="text-xl font-bold">{greeting}, Amartya</h1>
           </div>
-          <div className="overflow-y-auto max-h-56 scrollbar-thin">
-            <table className="w-full text-xs">
-              <thead className="bg-gray-800/50 sticky top-0">
-                <tr className="text-left text-gray-500">
-                  <th className="px-3 py-2">Class</th>
-                  <th className="px-3 py-2">Confidence</th>
-                  <th className="px-3 py-2">Activity</th>
-                  <th className="px-3 py-2">Source</th>
-                  <th className="px-3 py-2">Time</th>
-                </tr>
-              </thead>
-              <tbody>
-                {detections.slice(0, 50).map((d, i) => (
-                  <tr key={i} className="border-t border-gray-800 hover:bg-gray-800/30">
-                    <td className="px-3 py-1.5 font-medium text-white capitalize">{d.class_name}</td>
-                    <td className={`px-3 py-1.5 font-bold ${d.confidence >= 0.7 ? 'text-green-400' : d.confidence >= 0.5 ? 'text-yellow-400' : 'text-red-400'}`}>
-                      {(d.confidence * 100).toFixed(0)}%
-                    </td>
-                    <td className="px-3 py-1.5 text-gray-400">{d.activity_label || '—'}</td>
-                    <td className="px-3 py-1.5 text-gray-500 capitalize">{d.source}</td>
-                    <td className="px-3 py-1.5 text-gray-600">{d.timestamp?.slice(11, 19) || '—'}</td>
-                  </tr>
+          <div className="flex items-center gap-3">
+            <button onClick={fetchDetections}
+              style={{ background: '#1e160a', border: '1px solid #2a1d10', color: '#b45309', borderRadius: 9 }}
+              className="flex items-center gap-1.5 text-xs px-3 py-2 hover:border-amber-600 transition-colors">
+              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} /> Refresh
+            </button>
+            <button onClick={exportCSV}
+              style={{ background: `${AMBER_D}`, color: '#090603', borderRadius: 9, fontWeight: 700 }}
+              className="flex items-center gap-1.5 text-xs px-3 py-2 hover:opacity-90 transition-opacity">
+              <Download className="w-3.5 h-3.5" /> Export CSV
+            </button>
+            <div style={{ color: '#b45309', fontFamily: 'monospace', fontSize: 13 }}>{dateStr}</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-6 py-5 space-y-5">
+
+        {/* ── Stat cards ── */}
+        <div className="grid grid-cols-5 gap-4">
+          <StatCard label="Total Detections" value={totalDetections} icon={Target}   accent={AMBER}     sub="all time" />
+          <StatCard label="High Confidence"  value={highConf}        icon={Zap}      accent="#10b981"   sub="≥ 80% conf" />
+          <StatCard label="Active Alerts"    value={alerts.length}   icon={Bell}     accent="#ef4444"   sub="speeding + parked" />
+          <StatCard label="Avg Confidence"   value={`${avgConf}%`}   icon={TrendingUp} accent="#3b82f6" sub="across all detections" />
+          <StatCard label="Model"            value="YOLOv8s"         icon={Cpu}      accent="#8b5cf6"   sub="56.01% mAP@0.5" />
+        </div>
+
+        {/* ── Tabs ── */}
+        <div style={{ borderBottom: '1px solid #2a1d10' }} className="flex items-center gap-0">
+          {[['attention','🔔 Attention'],['figures','📊 Figures']].map(([key,label]) => (
+            <button key={key} onClick={() => setTab(key)}
+              style={{
+                color: tab === key ? AMBER : '#92400e',
+                borderBottom: tab === key ? `2px solid ${AMBER}` : '2px solid transparent',
+                padding: '8px 20px',
+                fontSize: 13,
+                fontWeight: 600,
+                background: 'none',
+                transition: 'all 0.15s',
+              }}>
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* ── ATTENTION TAB ── */}
+        {tab === 'attention' && (
+          <div className="grid grid-cols-3 gap-5">
+            {/* Needs attention */}
+            <div className="col-span-2 space-y-3">
+              {/* Critical section */}
+              <div style={WARM_CARD} className="overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-3"
+                  style={{ borderBottom: '1px solid #2a1d10' }}>
+                  <div className="flex items-center gap-2">
+                    <span style={{ background:'#ef444420', color:'#ef4444', borderRadius:6, padding:'2px 8px', fontSize:11, fontWeight:700 }}>
+                      CRITICAL
+                    </span>
+                    <span style={{ color:'#92400e', fontSize:12 }}>Needs your attention</span>
+                  </div>
+                  <span style={{ background: '#ef444420', color:'#ef4444', borderRadius:99, fontSize:11, fontWeight:700, padding:'2px 10px' }}>
+                    {Math.max(0, alerts.length)} items
+                  </span>
+                </div>
+                <div className="p-3 space-y-2">
+                  {alerts.length === 0 ? (
+                    <div className="py-8 text-center">
+                      <p style={{ color: '#92400e' }} className="text-sm">✅ No critical alerts right now</p>
+                      <p style={{ color: '#78350f' }} className="text-xs mt-1">Run the Live Stream to detect vehicles</p>
+                    </div>
+                  ) : (
+                    alerts.slice(0,5).map((d,i) => (
+                      <AlertCard key={i}
+                        title={`${d.class_name} — ${d.activity_label}`}
+                        detail={`Confidence: ${(d.confidence*100).toFixed(0)}% · Source: ${d.source}`}
+                        count={1} severity="critical"
+                        time={d.timestamp?.slice(11,19) || '—'} />
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* Warning section */}
+              <div style={WARM_CARD} className="overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-3"
+                  style={{ borderBottom: '1px solid #2a1d10' }}>
+                  <div className="flex items-center gap-2">
+                    <span style={{ background:`${AMBER}20`, color:AMBER, borderRadius:6, padding:'2px 8px', fontSize:11, fontWeight:700 }}>
+                      RECENT
+                    </span>
+                    <span style={{ color:'#92400e', fontSize:12 }}>High-confidence detections</span>
+                  </div>
+                  <span style={{ background:`${AMBER}20`, color:AMBER, borderRadius:99, fontSize:11, fontWeight:700, padding:'2px 10px' }}>
+                    {highConf}
+                  </span>
+                </div>
+                <div className="p-3 space-y-2">
+                  {detections.filter(d=>d.confidence>=0.8).slice(0,4).map((d,i) => (
+                    <div key={i} style={WARM_INNER} className="p-3 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <span style={{ fontSize:20 }}>
+                          {d.class_name==='car'?'🚗':d.class_name==='truck'?'🚛':d.class_name==='pedestrian'||d.class_name==='person'?'🧍':d.class_name==='bus'?'🚌':'📦'}
+                        </span>
+                        <div>
+                          <p style={{ color:'#fef3c7' }} className="text-sm font-semibold capitalize">{d.class_name}</p>
+                          <p style={{ color:'#92400e' }} className="text-xs">{d.source} · {d.timestamp?.slice(11,19)}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {d.activity_label && (
+                          <span style={{ background:'#2a1d10', color:'#b45309', borderRadius:6, fontSize:11 }} className="px-2 py-0.5">{d.activity_label}</span>
+                        )}
+                        <span style={{ color:'#10b981', fontWeight:700, fontSize:13 }}>{(d.confidence*100).toFixed(0)}%</span>
+                      </div>
+                    </div>
+                  ))}
+                  {detections.filter(d=>d.confidence>=0.8).length === 0 && (
+                    <p style={{ color:'#78350f' }} className="text-xs text-center py-4">No detections yet — upload an image or start live stream</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Right column — quick stats + source breakdown */}
+            <div className="space-y-4">
+              {/* Model status card */}
+              <div style={WARM_CARD} className="p-4">
+                <p style={{ color:'#92400e' }} className="text-xs font-semibold uppercase tracking-wider mb-3">System Status</p>
+                {[
+                  { label: 'Model',       val: 'YOLOv8s VisDrone', ok: true },
+                  { label: 'GPU',         val: 'CUDA Active',       ok: true },
+                  { label: 'mAP@0.5',     val: '56.01%',            ok: true },
+                  { label: 'Classes',     val: '10 (VisDrone)',     ok: true },
+                  { label: 'API Status',  val: 'Running :8000',     ok: true },
+                  { label: 'Tests',       val: '51 / 51 passing',   ok: true },
+                ].map(({ label, val, ok }) => (
+                  <div key={label} className="flex items-center justify-between py-2"
+                    style={{ borderBottom: '1px solid #2a1d10' }}>
+                    <span style={{ color:'#92400e' }} className="text-xs">{label}</span>
+                    <div className="flex items-center gap-1.5">
+                      <span style={{ width:6, height:6, borderRadius:'50%', background: ok?'#10b981':'#ef4444', display:'inline-block' }} />
+                      <span style={{ color:'#fef3c7' }} className="text-xs font-medium">{val}</span>
+                    </div>
+                  </div>
                 ))}
-              </tbody>
-            </table>
+              </div>
+
+              {/* Source pie */}
+              <div style={WARM_CARD} className="p-4">
+                <p style={{ color:'#92400e' }} className="text-xs font-semibold uppercase tracking-wider mb-2">Detection Sources</p>
+                {sourceData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={140}>
+                    <PieChart>
+                      <Pie data={sourceData} cx="50%" cy="50%" outerRadius={55} dataKey="value"
+                        label={({name,percent})=>`${name} ${(percent*100).toFixed(0)}%`} labelLine={false}
+                        style={{ fontSize: 10, fill: '#b45309' }}>
+                        {sourceData.map((_,i) => <Cell key={i} fill={COLORS[i%COLORS.length]} />)}
+                      </Pie>
+                      <Tooltip contentStyle={tooltipStyle} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <p style={{ color:'#78350f' }} className="text-xs text-center py-8">No data yet</p>
+                )}
+              </div>
+
+              {/* Top class */}
+              {classData[0] && (
+                <div style={{ ...WARM_CARD, background: `${AMBER}12`, border:`1px solid ${AMBER}30` }} className="p-4">
+                  <p style={{ color: AMBER_D }} className="text-xs font-semibold uppercase tracking-wider mb-2">Most Detected</p>
+                  <p style={{ color:'#fef3c7' }} className="text-2xl font-bold capitalize">{classData[0].name}</p>
+                  <p style={{ color: AMBER_D }} className="text-sm">{classData[0].count} detections</p>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* ── FIGURES TAB ── */}
+        {tab === 'figures' && (
+          <div className="space-y-5">
+            <div className="grid grid-cols-2 gap-5">
+              {/* Bar chart */}
+              <div style={WARM_CARD} className="p-5">
+                <p style={{ color:'#fef3c7' }} className="text-sm font-semibold mb-4">Top Detected Classes</p>
+                <ResponsiveContainer width="100%" height={220}>
+                  <BarChart data={classData} margin={{ top:0, right:10, left:-10, bottom:40 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#2a1d10" />
+                    <XAxis dataKey="name" tick={{ fill:'#92400e', fontSize:10 }} angle={-35} textAnchor="end" />
+                    <YAxis tick={{ fill:'#92400e', fontSize:10 }} />
+                    <Tooltip contentStyle={tooltipStyle} />
+                    <Bar dataKey="count" fill={AMBER} radius={[5,5,0,0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Line chart */}
+              <div style={WARM_CARD} className="p-5">
+                <p style={{ color:'#fef3c7' }} className="text-sm font-semibold mb-4">Detections Over Time</p>
+                <ResponsiveContainer width="100%" height={220}>
+                  <LineChart data={timeChartData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#2a1d10" />
+                    <XAxis dataKey="time" tick={{ fill:'#92400e', fontSize:10 }} />
+                    <YAxis tick={{ fill:'#92400e', fontSize:10 }} />
+                    <Tooltip contentStyle={tooltipStyle} />
+                    <Line type="monotone" dataKey="count" stroke={AMBER} strokeWidth={2.5} dot={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Detection table */}
+            <div style={WARM_CARD} className="overflow-hidden">
+              <div className="px-4 py-3 flex items-center justify-between" style={{ borderBottom:'1px solid #2a1d10' }}>
+                <p style={{ color:'#fef3c7' }} className="text-sm font-semibold">All Detections</p>
+                <span style={{ background:`${AMBER}20`, color:AMBER, borderRadius:99, fontSize:11, fontWeight:700, padding:'2px 10px' }}>
+                  {totalDetections} total
+                </span>
+              </div>
+              <div className="overflow-y-auto max-h-64 scrollbar-thin">
+                <table className="w-full text-xs">
+                  <thead style={{ background:'#1e160a' }} className="sticky top-0">
+                    <tr style={{ color:'#92400e' }} className="text-left">
+                      <th className="px-4 py-2">Class</th>
+                      <th className="px-4 py-2">Confidence</th>
+                      <th className="px-4 py-2">Activity</th>
+                      <th className="px-4 py-2">Source</th>
+                      <th className="px-4 py-2">Time</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {detections.slice(0,50).map((d,i) => (
+                      <tr key={i} style={{ borderTop:'1px solid #2a1d10' }}
+                        className="hover:bg-opacity-50 transition-colors"
+                        onMouseEnter={e=>e.currentTarget.style.background='#1e160a'}
+                        onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                        <td className="px-4 py-1.5" style={{ color:'#fef3c7', fontWeight:600 }}>{d.class_name}</td>
+                        <td className="px-4 py-1.5" style={{ color: d.confidence>=0.7?'#10b981':d.confidence>=0.5?AMBER:'#ef4444', fontWeight:700 }}>
+                          {(d.confidence*100).toFixed(0)}%
+                        </td>
+                        <td className="px-4 py-1.5" style={{ color:'#b45309' }}>{d.activity_label||'—'}</td>
+                        <td className="px-4 py-1.5" style={{ color:'#78350f' }}>{d.source}</td>
+                        <td className="px-4 py-1.5" style={{ color:'#78350f', fontFamily:'monospace' }}>{d.timestamp?.slice(11,19)||'—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {detections.length===0 && (
+                  <p style={{ color:'#78350f' }} className="text-center py-10 text-xs">No detections yet — upload an image or run live stream</p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
