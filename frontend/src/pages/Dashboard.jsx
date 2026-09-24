@@ -14,11 +14,12 @@ const GREEN  = '#10b981'
 const RED    = '#ef4444'
 const COLORS = [BLUE, CYAN, PURPLE, '#f59e0b', RED, '#ec4899', GREEN, '#f97316', '#84cc16', '#06b6d4']
 
-/* ─── shared card styles ───────────────────────────────────── */
+/* ─── shared card styles — GLASS so canvas bleeds through ──── */
 const card = (glowColor = BLUE) => ({
-  background:     'rgba(6,12,26,0.82)',
-  backdropFilter: 'blur(14px)',
-  border:         `1px solid rgba(59,130,246,0.18)`,
+  background:     'rgba(4,6,18,0.58)',
+  backdropFilter: 'blur(18px)',
+  WebkitBackdropFilter: 'blur(18px)',
+  border:         '1px solid rgba(255,255,255,0.08)',
   borderRadius:   16,
   position:       'relative',
   overflow:       'hidden',
@@ -27,7 +28,8 @@ const card = (glowColor = BLUE) => ({
 
 const hoverCard = (el, glowColor = BLUE) => {
   el.style.transform   = 'translateY(-4px) scale(1.015)'
-  el.style.boxShadow   = `0 8px 40px rgba(0,0,0,0.5), 0 0 30px ${glowColor}30`
+  el.style.boxShadow   = `0 12px 50px rgba(0,0,0,0.6), 0 0 35px ${glowColor}35`
+
   el.style.borderColor = `${glowColor}55`
 }
 const leaveCard = (el) => {
@@ -216,12 +218,13 @@ export default function Dashboard() {
   }
 
   return (
-    <div style={{ background:'#020510', minHeight:'100vh', position:'relative' }}>
+    <div style={{ background:'transparent', minHeight:'100vh', position:'relative' }}>
 
       {/* ── Header ─────────────────────────────────────────── */}
       <div style={{
-        background:'linear-gradient(180deg,rgba(59,130,246,0.06) 0%,transparent 100%)',
-        borderBottom:'1px solid rgba(59,130,246,0.18)',
+        background:'rgba(4,4,14,0.45)',
+        backdropFilter:'blur(16px)', WebkitBackdropFilter:'blur(16px)',
+        borderBottom:'1px solid rgba(255,255,255,0.07)',
         padding:'14px 0', position:'relative', overflow:'hidden',
       }}>
         {/* Animated scan line */}

@@ -13,11 +13,12 @@ export default function Navbar() {
   return (
     <nav style={{
       position: 'fixed', top: 0, left: 0, right: 0, zIndex: 50, height: 64,
-      background: 'rgba(2,5,16,0.75)',
-      backdropFilter: 'blur(24px)',
-      WebkitBackdropFilter: 'blur(24px)',
-      borderBottom: '1px solid rgba(59,130,246,0.18)',
-      boxShadow: '0 1px 40px rgba(0,0,0,0.5), 0 0 80px rgba(59,130,246,0.04), inset 0 -1px 0 rgba(59,130,246,0.1)',
+      background: 'rgba(4,4,14,0.55)',
+      backdropFilter: 'blur(28px)',
+      WebkitBackdropFilter: 'blur(28px)',
+      borderBottom: '1px solid rgba(255,255,255,0.08)',
+      boxShadow: '0 1px 50px rgba(0,0,0,0.6), inset 0 -1px 0 rgba(255,255,255,0.05)',
+
     }}>
       {/* Top edge glow line */}
       <div style={{
