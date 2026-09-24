@@ -2,6 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Hide default cursor everywhere ───────────────────────── */
+*, *::before, *::after {
+  cursor: none !important;
+}
+
+/* ── Base dark theme ───────────────────────────────────────── */
 @layer base {
   body {
     @apply bg-gray-950 text-gray-100 font-sans;
@@ -11,16 +17,88 @@
   }
 }
 
+/* ── Scrollbar ─────────────────────────────────────────────── */
 @layer utilities {
   .scrollbar-thin {
     scrollbar-width: thin;
     scrollbar-color: #374151 transparent;
   }
-  .scrollbar-thin::-webkit-scrollbar {
-    width: 6px;
-  }
+  .scrollbar-thin::-webkit-scrollbar { width: 6px; }
   .scrollbar-thin::-webkit-scrollbar-thumb {
     background: #374151;
     border-radius: 3px;
   }
+}
+
+/* ── Lamp swing animation ──────────────────────────────────── */
+@keyframes lampSwing {
+  0%   { transform: rotate(0deg); }
+  15%  { transform: rotate(18deg); }
+  35%  { transform: rotate(-12deg); }
+  55%  { transform: rotate(7deg); }
+  72%  { transform: rotate(-4deg); }
+  85%  { transform: rotate(2deg); }
+  100% { transform: rotate(0deg); }
+}
+
+/* ── Scanner sweep animation ───────────────────────────────── */
+@keyframes scanSweep {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* ── Navbar theme-aware classes ────────────────────────────── */
+.navbar-bg  { background: #111827; }
+.navbar-text { color: #f9fafb; }
+.nav-link   { color: #9ca3af; }
+
+/* ══════════════════════════════════════════════════════════════
+   LIGHT THEME OVERRIDES
+   Applied when <html data-theme="light">
+══════════════════════════════════════════════════════════════ */
+[data-theme="light"] body            { background: #f1f5f9; color: #0f172a; }
+[data-theme="light"] .navbar-bg      { background: #ffffff; border-color: #e2e8f0; }
+[data-theme="light"] .navbar-text    { color: #0f172a; }
+[data-theme="light"] .nav-link       { color: #475569; }
+
+/* Backgrounds */
+[data-theme="light"] .bg-gray-950   { background-color: #f1f5f9 !important; }
+[data-theme="light"] .bg-gray-900   { background-color: #ffffff !important; }
+[data-theme="light"] .bg-gray-800   { background-color: #e2e8f0 !important; }
+[data-theme="light"] .bg-gray-800\/50 { background-color: rgba(226,232,240,0.5) !important; }
+[data-theme="light"] .hover\:bg-gray-800:hover { background-color: #e2e8f0 !important; }
+[data-theme="light"] .bg-gray-700   { background-color: #cbd5e1 !important; }
+
+/* Text */
+[data-theme="light"] .text-white     { color: #0f172a !important; }
+[data-theme="light"] .text-gray-100  { color: #1e293b !important; }
+[data-theme="light"] .text-gray-300  { color: #334155 !important; }
+[data-theme="light"] .text-gray-400  { color: #475569 !important; }
+[data-theme="light"] .text-gray-500  { color: #64748b !important; }
+[data-theme="light"] .text-gray-600  { color: #94a3b8 !important; }
+[data-theme="light"] .text-gray-700  { color: #cbd5e1 !important; }
+
+/* Borders */
+[data-theme="light"] .border-gray-800 { border-color: #e2e8f0 !important; }
+[data-theme="light"] .border-gray-700 { border-color: #cbd5e1 !important; }
+[data-theme="light"] * { border-color: #e2e8f0; }
+
+/* Detection cards in light mode */
+[data-theme="light"] .bg-red-900\/20   { background-color: rgba(254,226,226,0.5) !important; }
+[data-theme="light"] .bg-indigo-900\/20 { background-color: rgba(238,242,255,0.7) !important; }
+[data-theme="light"] .bg-yellow-900\/20 { background-color: rgba(255,251,235,0.7) !important; }
+
+/* Scrollbar in light mode */
+[data-theme="light"] .scrollbar-thin {
+  scrollbar-color: #cbd5e1 transparent;
+}
+[data-theme="light"] .scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+}
+
+/* Toast in light mode */
+[data-theme="light"] .go2072408551 {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid #e2e8f0 !important;
 }
