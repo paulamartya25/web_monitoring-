@@ -13,66 +13,74 @@ export default function Navbar() {
   return (
     <nav style={{
       position: 'fixed', top: 0, left: 0, right: 0, zIndex: 50, height: 64,
-      background: 'rgba(9,6,3,0.65)',
-      backdropFilter: 'blur(20px)',
-      WebkitBackdropFilter: 'blur(20px)',
-      borderBottom: '1px solid rgba(245,158,11,0.15)',
-      boxShadow: '0 4px 40px rgba(0,0,0,0.4), inset 0 -1px 0 rgba(245,158,11,0.08)',
+      background: 'rgba(2,5,16,0.75)',
+      backdropFilter: 'blur(24px)',
+      WebkitBackdropFilter: 'blur(24px)',
+      borderBottom: '1px solid rgba(59,130,246,0.18)',
+      boxShadow: '0 1px 40px rgba(0,0,0,0.5), 0 0 80px rgba(59,130,246,0.04), inset 0 -1px 0 rgba(59,130,246,0.1)',
     }}>
+      {/* Top edge glow line */}
+      <div style={{
+        position: 'absolute', top: 0, left: 0, right: 0, height: 1,
+        background: 'linear-gradient(90deg, transparent, rgba(59,130,246,0.6), rgba(6,182,212,0.6), rgba(139,92,246,0.6), transparent)',
+        animation: 'gradientShift 4s ease infinite',
+        backgroundSize: '200% 200%',
+      }}/>
+
       <div className="max-w-7xl mx-auto px-4 h-full flex items-center justify-between">
 
-        {/* Animated logo */}
-        <div className="flex items-center gap-2.5">
+        {/* Logo */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{
-            width: 34, height: 34, borderRadius: 10,
-            background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+            width: 36, height: 36, borderRadius: 10,
+            background: 'linear-gradient(135deg, #3b82f6, #06b6d4)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 0 14px rgba(245,158,11,0.5)',
             animation: 'logoPulse 3s ease-in-out infinite',
+            flexShrink: 0,
           }}>
-            <Camera style={{ color: '#090603', width: 18, height: 18 }} />
+            <Camera style={{ color: '#fff', width: 18, height: 18 }} />
           </div>
+
           <span style={{
             fontWeight: 800, fontSize: 18, letterSpacing: '-0.5px',
-            background: 'linear-gradient(90deg, #fef3c7, #f59e0b)',
+            background: 'linear-gradient(90deg, #e2e8f0 0%, #60a5fa 40%, #06b6d4 70%, #8b5cf6 100%)',
+            backgroundSize: '200% 200%',
             WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+            animation: 'gradientShift 5s ease infinite',
           }}>
-            Vision<span style={{
-              background: 'linear-gradient(90deg,#f59e0b,#ef4444)',
-              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-            }}>AI</span>
+            Vision<span>AI</span>
           </span>
-          {/* Live indicator */}
+
+          {/* Live badge */}
           <div style={{
             display: 'flex', alignItems: 'center', gap: 5,
-            background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)',
-            borderRadius: 99, padding: '2px 8px',
+            background: 'rgba(16,185,129,0.1)',
+            border: '1px solid rgba(16,185,129,0.35)',
+            borderRadius: 99, padding: '2px 9px',
           }}>
-            <span style={{
-              width: 6, height: 6, borderRadius: '50%', background: '#10b981',
-              display: 'inline-block', animation: 'amberPulse 1.5s ease-in-out infinite',
-            }} />
+            <span className="blue-pulse" style={{
+              width: 6, height: 6, borderRadius: '50%',
+              background: '#10b981', display: 'inline-block',
+              boxShadow: '0 0 6px #10b981',
+            }}/>
             <span style={{ color: '#10b981', fontSize: 10, fontWeight: 700 }}>LIVE</span>
           </div>
         </div>
 
         {/* Nav links */}
-        <div className="flex items-center gap-1">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           {links.map(({ to, label, icon: Icon }) => (
-            <NavLink key={to} to={to}
-              className="nav-link-item"
-              style={({ isActive }) => ({
-                display: 'flex', alignItems: 'center', gap: 6,
-                padding: '7px 14px', borderRadius: 10,
-                fontSize: 13, fontWeight: 600,
-                transition: 'all 0.2s',
-                textDecoration: 'none',
-                color: isActive ? '#f59e0b' : '#92400e',
-                background: isActive ? 'rgba(245,158,11,0.12)' : 'transparent',
-                border: isActive ? '1px solid rgba(245,158,11,0.35)' : '1px solid transparent',
-                boxShadow: isActive ? '0 0 12px rgba(245,158,11,0.15)' : 'none',
-              })}
-            >
+            <NavLink key={to} to={to} style={({ isActive }) => ({
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '7px 14px', borderRadius: 10,
+              fontSize: 13, fontWeight: 600,
+              textDecoration: 'none',
+              transition: 'all 0.2s',
+              color:      isActive ? '#60a5fa' : '#334155',
+              background: isActive ? 'rgba(59,130,246,0.12)' : 'transparent',
+              border:     isActive ? '1px solid rgba(59,130,246,0.35)' : '1px solid transparent',
+              boxShadow:  isActive ? '0 0 14px rgba(59,130,246,0.18)' : 'none',
+            })}>
               <Icon style={{ width: 15, height: 15 }} />
               {label}
             </NavLink>
@@ -82,7 +90,7 @@ export default function Navbar() {
         {/* Lamp toggle */}
         <div style={{
           paddingLeft: 16,
-          borderLeft: '1px solid rgba(245,158,11,0.15)',
+          borderLeft: '1px solid rgba(59,130,246,0.15)',
           marginLeft: 8,
         }}>
           <LampToggle />

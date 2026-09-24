@@ -2,91 +2,84 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── Hide default cursor everywhere ───────────────────────── */
-*, *::before, *::after {
-  cursor: none !important;
-}
-
 /* ══════════════════════════════════════════════════════════════
-   WARM AMBER DARK THEME  (Facto-inspired)
-   Overrides Tailwind gray palette → warm brown/amber
+   NAVY BLUE THEME — Deep space dark
 ══════════════════════════════════════════════════════════════ */
 :root {
-  --warm-950: #090603;
-  --warm-900: #120d06;
-  --warm-800: #1e160a;
-  --warm-700: #2d2010;
-  --warm-600: #3d2d16;
-  --amber:    #f59e0b;
-  --amber-d:  #d97706;
-  --amber-dim: rgba(245,158,11,0.12);
-  --cream:    #fef3c7;
-  --muted:    #92400e;
-  --border:   #2a1d10;
+  --navy-950: #020510;
+  --navy-900: #060c1a;
+  --navy-800: #0a1228;
+  --navy-700: #101d3a;
+  --navy-600: #172850;
+  --blue:     #3b82f6;
+  --blue-d:   #2563eb;
+  --cyan:     #06b6d4;
+  --purple:   #8b5cf6;
+  --glow-blue: rgba(59,130,246,0.45);
+  --glow-cyan: rgba(6,182,212,0.35);
+  --text:     #e2e8f0;
+  --text-dim: #60a5fa;
+  --muted:    #334155;
+  --border:   #1e3a5f;
 }
 
-/* Base */
+/* ── Hide default cursor ────────────────────────────────────── */
+*, *::before, *::after { cursor: none !important; }
+
+/* ── Base ───────────────────────────────────────────────────── */
 @layer base {
-  body {
-    background-color: var(--warm-950);
-    color: var(--cream);
-    font-family: 'Inter', system-ui, sans-serif;
-  }
+  html { background: var(--navy-950); }
+  body { background: var(--navy-950); color: var(--text); font-family: 'Inter', system-ui, sans-serif; }
   * { border-color: var(--border); }
 }
 
-/* Override Tailwind grays → warm */
-.bg-gray-950    { background-color: var(--warm-950) !important; }
-.bg-gray-900    { background-color: var(--warm-900) !important; }
-.bg-gray-800    { background-color: var(--warm-800) !important; }
-.bg-gray-700    { background-color: var(--warm-700) !important; }
-.border-gray-800{ border-color: var(--border) !important; }
-.border-gray-700{ border-color: #3d2d16 !important; }
-.hover\:bg-gray-800:hover { background-color: var(--warm-800) !important; }
-.bg-gray-800\/50{ background-color: rgba(30,22,10,0.5) !important; }
-.bg-gray-800\/30{ background-color: rgba(30,22,10,0.3) !important; }
+/* ── Override Tailwind grays → navy ────────────────────────── */
+.bg-gray-950        { background-color: var(--navy-950) !important; }
+.bg-gray-900        { background-color: var(--navy-900) !important; }
+.bg-gray-800        { background-color: var(--navy-800) !important; }
+.bg-gray-700        { background-color: var(--navy-700) !important; }
+.border-gray-800    { border-color: var(--border)       !important; }
+.border-gray-700    { border-color: #1e3a5f             !important; }
+.hover\:bg-gray-800:hover { background-color: var(--navy-800) !important; }
+.bg-gray-800\/50    { background-color: rgba(10,18,40,0.5)  !important; }
+.bg-gray-800\/30    { background-color: rgba(10,18,40,0.3)  !important; }
 
-/* Text overrides */
-.text-gray-100  { color: var(--cream) !important; }
-.text-gray-300  { color: #fcd58a !important; }
-.text-gray-400  { color: #b45309 !important; }
-.text-gray-500  { color: #92400e !important; }
-.text-gray-600  { color: #78350f !important; }
-.text-gray-700  { color: #78350f !important; }
-.text-white     { color: var(--cream) !important; }
+/* ── Text ───────────────────────────────────────────────────── */
+.text-white         { color: var(--text)    !important; }
+.text-gray-100      { color: #e2e8f0        !important; }
+.text-gray-300      { color: #94a3b8        !important; }
+.text-gray-400      { color: #60a5fa        !important; }
+.text-gray-500      { color: #3b82f6        !important; }
+.text-gray-600      { color: #2563eb        !important; }
 
-/* Navbar */
-.navbar-bg  { background-color: var(--warm-900); border-color: var(--border); }
-.navbar-text { color: var(--cream); }
-.nav-link   { color: #b45309; }
-.nav-link:hover { color: var(--amber); }
+/* ── Accent remap: indigo → blue/cyan ───────────────────────── */
+.bg-indigo-600\/20          { background-color: rgba(59,130,246,0.15) !important; }
+.border-indigo-600\/40      { border-color: rgba(59,130,246,0.4)      !important; }
+.border-indigo-600\/30      { border-color: rgba(59,130,246,0.3)      !important; }
+.bg-indigo-600\/10          { background-color: rgba(59,130,246,0.1)  !important; }
+.text-indigo-300            { color: #93c5fd  !important; }
+.text-indigo-400            { color: #60a5fa  !important; }
+.text-indigo-500            { color: var(--blue) !important; }
+.bg-indigo-600              { background-color: var(--blue-d) !important; }
+.hover\:bg-indigo-500:hover { background-color: var(--blue)   !important; }
 
-/* Active nav: change indigo → amber */
-.bg-indigo-600\/20 { background-color: var(--amber-dim) !important; }
-.border-indigo-600\/40 { border-color: rgba(245,158,11,0.4) !important; }
-.text-indigo-300   { color: var(--amber) !important; }
-.text-indigo-400   { color: var(--amber-d) !important; }
-.text-indigo-500   { color: var(--amber) !important; }
-.bg-indigo-600     { background-color: var(--amber-d) !important; }
-.bg-indigo-600\/10 { background-color: var(--amber-dim) !important; }
-.border-indigo-600\/30 { border-color: rgba(245,158,11,0.3) !important; }
-.hover\:bg-indigo-500:hover { background-color: var(--amber) !important; }
-.accent-indigo-500 { accent-color: var(--amber) !important; }
-
-/* Scrollbar */
+/* ── Scrollbar ──────────────────────────────────────────────── */
 @layer utilities {
   .scrollbar-thin {
     scrollbar-width: thin;
-    scrollbar-color: #3d2d16 transparent;
+    scrollbar-color: #1e3a5f transparent;
   }
   .scrollbar-thin::-webkit-scrollbar { width: 6px; }
   .scrollbar-thin::-webkit-scrollbar-thumb {
-    background: #3d2d16;
-    border-radius: 3px;
+    background: #1e3a5f; border-radius: 3px;
   }
 }
 
-/* ── Lamp swing ────────────────────────────────────────────── */
+/* ══════════════════════════════════════════════════════════════
+   ANIMATIONS
+══════════════════════════════════════════════════════════════ */
+
+/* Lamp */
 @keyframes lampSwing {
   0%   { transform: rotate(0deg); }
   15%  { transform: rotate(18deg); }
@@ -97,74 +90,95 @@
   100% { transform: rotate(0deg); }
 }
 
-/* ── Scanner sweep ─────────────────────────────────────────── */
+/* Scanner sweep (inside cursor ring) */
 @keyframes scanSweep {
   from { transform: rotate(0deg); }
   to   { transform: rotate(360deg); }
 }
 
-/* ── Amber pulse glow ──────────────────────────────────────── */
-@keyframes amberPulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(245,158,11,0.5); }
-  50%       { box-shadow: 0 0 0 8px rgba(245,158,11,0); }
+/* Pulsing blue glow dot */
+@keyframes bluePulse {
+  0%,100% { box-shadow: 0 0 0 0 rgba(59,130,246,0.6); }
+  50%     { box-shadow: 0 0 0 8px rgba(59,130,246,0); }
 }
-.amber-pulse { animation: amberPulse 1.8s ease-in-out infinite; }
+.blue-pulse { animation: bluePulse 1.8s ease-in-out infinite; }
 
-/* ── Logo glow ─────────────────────────────────────────────── */
+/* Navbar logo glow */
 @keyframes logoPulse {
-  0%,100% { box-shadow: 0 0 14px rgba(245,158,11,0.5); }
-  50%     { box-shadow: 0 0 28px rgba(245,158,11,0.85), 0 0 50px rgba(245,158,11,0.3); }
+  0%,100% { box-shadow: 0 0 14px rgba(59,130,246,0.55), 0 0 0 1px rgba(59,130,246,0.2); }
+  50%     { box-shadow: 0 0 30px rgba(59,130,246,0.9), 0 0 60px rgba(6,182,212,0.35), 0 0 0 1px rgba(59,130,246,0.5); }
 }
 
-/* ── Fade in up (stagger cards) ────────────────────────────── */
+/* Card fade in + lift */
 @keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(20px); }
+  from { opacity: 0; transform: translateY(22px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ── Horizontal scan line ──────────────────────────────────── */
+/* Header scan line */
 @keyframes scanLine {
   0%   { transform: translateX(-100%); opacity: 0; }
-  10%  { opacity: 1; }
-  90%  { opacity: 1; }
+  5%   { opacity: 1; }
+  95%  { opacity: 1; }
   100% { transform: translateX(100vw); opacity: 0; }
 }
 
-/* ── Shimmer line on stat cards ────────────────────────────── */
+/* Shimmer on stat cards */
 @keyframes shimmerLine {
   0%   { transform: translateX(-100%); }
-  100% { transform: translateX(200%); }
+  100% { transform: translateX(250%); }
 }
 
-/* ── Blinking cursor for typewriter ────────────────────────── */
+/* Typewriter cursor blink */
 @keyframes blink {
   0%,100% { opacity: 1; }
   50%     { opacity: 0; }
 }
 
-/* ── Float (subtle idle animation) ────────────────────────── */
+/* Orbit ring animation */
+@keyframes orbit {
+  from { transform: translate(-50%,-50%) rotate(0deg); }
+  to   { transform: translate(-50%,-50%) rotate(360deg); }
+}
+
+/* Float idle */
 @keyframes float {
-  0%,100% { transform: translateY(0px); }
-  50%     { transform: translateY(-6px); }
+  0%,100% { transform: translateY(0); }
+  50%     { transform: translateY(-7px); }
 }
 
-/* ── Rotating gradient border ──────────────────────────────── */
-@keyframes rotateBorder {
-  from { filter: hue-rotate(0deg); }
-  to   { filter: hue-rotate(360deg); }
+/* Blue border glow pulse */
+@keyframes borderGlow {
+  0%,100% { border-color: rgba(59,130,246,0.3); box-shadow: 0 0 10px rgba(59,130,246,0.1); }
+  50%     { border-color: rgba(6,182,212,0.6);  box-shadow: 0 0 25px rgba(6,182,212,0.25); }
 }
 
-/* ── Light theme overrides ─────────────────────────────────── */
-[data-theme="light"] body         { background: #fafaf5; color: #1c1009; }
-[data-theme="light"] .navbar-bg   { background: #fff8e8; border-color: #fde68a; }
-[data-theme="light"] .navbar-text { color: #78350f; }
-[data-theme="light"] .nav-link    { color: #92400e; }
-[data-theme="light"] .bg-gray-950 { background-color: #fafaf5 !important; }
-[data-theme="light"] .bg-gray-900 { background-color: #fff8e8 !important; }
-[data-theme="light"] .bg-gray-800 { background-color: #fef3c7 !important; }
-[data-theme="light"] .border-gray-800 { border-color: #fde68a !important; }
-[data-theme="light"] .text-white  { color: #1c1009 !important; }
-[data-theme="light"] .text-gray-100 { color: #292110 !important; }
-[data-theme="light"] .text-gray-400 { color: #92400e !important; }
-[data-theme="light"] .text-gray-500 { color: #b45309 !important; }
-[data-theme="light"] * { border-color: #fde68a; }
+/* Gradient text shift */
+@keyframes gradientShift {
+  0%   { background-position: 0%   50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0%   50%; }
+}
+
+/* ── Navbar styles ──────────────────────────────────────────── */
+.navbar-bg   { background: rgba(2,5,16,0.72); border-color: rgba(59,130,246,0.18); }
+.navbar-text { color: #e2e8f0; }
+.nav-link    { color: #3b5280; }
+.nav-link:hover { color: #60a5fa; }
+
+/* ══════════════════════════════════════════════════════════════
+   LIGHT THEME
+══════════════════════════════════════════════════════════════ */
+[data-theme="light"] body           { background: #f0f4ff; color: #0f172a; }
+[data-theme="light"] .navbar-bg     { background: rgba(240,244,255,0.85); border-color: rgba(59,130,246,0.3); }
+[data-theme="light"] .navbar-text   { color: #0f172a; }
+[data-theme="light"] .nav-link      { color: #3b82f6; }
+[data-theme="light"] .bg-gray-950   { background-color: #f0f4ff !important; }
+[data-theme="light"] .bg-gray-900   { background-color: #ffffff !important; }
+[data-theme="light"] .bg-gray-800   { background-color: #dbeafe !important; }
+[data-theme="light"] .border-gray-800 { border-color: #bfdbfe !important; }
+[data-theme="light"] .text-white    { color: #0f172a !important; }
+[data-theme="light"] .text-gray-100 { color: #1e3a5f !important; }
+[data-theme="light"] .text-gray-400 { color: #2563eb !important; }
+[data-theme="light"] .text-gray-500 { color: #3b82f6 !important; }
+[data-theme="light"] * { border-color: #bfdbfe; }
