@@ -30,16 +30,17 @@
   * { border-color: var(--border); }
 }
 
-/* ── Tailwind gray overrides → glass (transparent) ────────── */
+/* ── Tailwind gray overrides → vivid glass ─────────────────── */
 .bg-gray-950        { background-color: transparent !important; }
-.bg-gray-900        { background-color: var(--glass-card)  !important; }
-.bg-gray-800        { background-color: var(--glass-inner) !important; }
-.bg-gray-700        { background-color: rgba(16,16,36,0.55) !important; }
-.border-gray-800    { border-color: var(--border)  !important; }
-.border-gray-700    { border-color: rgba(255,255,255,0.12) !important; }
-.hover\:bg-gray-800:hover { background-color: rgba(20,20,44,0.6) !important; }
-.bg-gray-800\/50    { background-color: rgba(8,8,20,0.5)  !important; }
-.bg-gray-800\/30    { background-color: rgba(8,8,20,0.3)  !important; }
+.bg-gray-900        { background-color: rgba(4,4,12,0.52) !important; }
+.bg-gray-800        { background-color: rgba(6,6,16,0.44) !important; }
+.bg-gray-700        { background-color: rgba(8,8,20,0.40) !important; }
+.border-gray-800    { border-color: rgba(255,255,255,0.10) !important; }
+.border-gray-700    { border-color: rgba(255,255,255,0.14) !important; }
+.hover\:bg-gray-800:hover { background-color: rgba(12,12,28,0.55) !important; }
+.bg-gray-800\/50    { background-color: rgba(4,4,12,0.50) !important; }
+.bg-gray-800\/30    { background-color: rgba(4,4,12,0.30) !important; }
+
 
 
 /* ── Text ───────────────────────────────────────────────────── */

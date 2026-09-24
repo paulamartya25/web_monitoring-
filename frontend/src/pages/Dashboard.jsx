@@ -14,12 +14,12 @@ const GREEN  = '#10b981'
 const RED    = '#ef4444'
 const COLORS = [BLUE, CYAN, PURPLE, '#f59e0b', RED, '#ec4899', GREEN, '#f97316', '#84cc16', '#06b6d4']
 
-/* ─── shared card styles — GLASS so canvas bleeds through ──── */
+/* ─── shared card styles — VIVID GLASS ─────────────────────── */
 const card = (glowColor = BLUE) => ({
-  background:     'rgba(4,6,18,0.58)',
-  backdropFilter: 'blur(18px)',
-  WebkitBackdropFilter: 'blur(18px)',
-  border:         '1px solid rgba(255,255,255,0.08)',
+  background:     'rgba(2,2,10,0.42)',
+  backdropFilter: 'blur(22px)',
+  WebkitBackdropFilter: 'blur(22px)',
+  border:         '1px solid rgba(255,255,255,0.10)',
   borderRadius:   16,
   position:       'relative',
   overflow:       'hidden',
@@ -28,7 +28,7 @@ const card = (glowColor = BLUE) => ({
 
 const hoverCard = (el, glowColor = BLUE) => {
   el.style.transform   = 'translateY(-4px) scale(1.015)'
-  el.style.boxShadow   = `0 12px 50px rgba(0,0,0,0.6), 0 0 35px ${glowColor}35`
+  el.style.boxShadow   = `0 12px 50px rgba(0,0,0,0.7), 0 0 40px ${glowColor}40`
 
   el.style.borderColor = `${glowColor}55`
 }
