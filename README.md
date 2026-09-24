@@ -15,12 +15,12 @@
 
 ## 📸 Real Detection Results
 
-> These are **actual outputs** from the live system running on real-world railway station footage.
+> All images below are **actual live outputs** from the system — bounding boxes, track IDs, confidence scores, and activity labels rendered in real time.
 
-| Detection Output | Input Scene (Ground) | Input Scene (Aerial) |
+| Heavy Traffic — 100 Detections | New Delhi Station — 8 Detections | Station Aerial — 42 Detections |
 |---|---|---|
-| ![Detection at New Delhi Station](docs/demo/detection_result_new_delhi.jpg) | ![Railway Platform Night](docs/demo/railway_platform_night.jpg) | ![Station Aerial View](docs/demo/railway_station_aerial.jpg) |
-| **8 pedestrians detected** at New Delhi Railway Station. Bounding boxes with track IDs, confidence scores, and activity labels (Moving/Stationary) rendered in real time. | Ground-level crowded platform scene — tests pedestrian detection in low-light, high-density conditions. | Aerial/elevated view of station — tests small object detection matching VisDrone training domain. |
+| ![Traffic Jam 100 detections](docs/demo/detection_traffic_jam_100.jpg) | ![New Delhi Station](docs/demo/detection_result_new_delhi.jpg) | ![Station Aerial 42](docs/demo/detection_station_aerial_42.jpg) |
+| **100 objects detected** in dense Indian traffic — cars, trucks, vans, tricycles, pedestrians. Multi-class simultaneous tracking with persistent IDs across frames. | **8 pedestrians detected** at New Delhi Railway Station with track IDs (#83–#161) and activity labels (Moving/Stopped). | **42 pedestrians detected** from an elevated viewpoint matching VisDrone aerial domain. Moving labels show crowd flow direction. |
 
 ---
 
