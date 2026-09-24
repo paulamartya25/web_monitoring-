@@ -13,6 +13,17 @@
 
 ---
 
+## 📸 Real Detection Results
+
+> These are **actual outputs** from the live system running on real-world railway station footage.
+
+| Detection Output | Input Scene (Ground) | Input Scene (Aerial) |
+|---|---|---|
+| ![Detection at New Delhi Station](docs/demo/detection_result_new_delhi.jpg) | ![Railway Platform Night](docs/demo/railway_platform_night.jpg) | ![Station Aerial View](docs/demo/railway_station_aerial.jpg) |
+| **8 pedestrians detected** at New Delhi Railway Station. Bounding boxes with track IDs, confidence scores, and activity labels (Moving/Stationary) rendered in real time. | Ground-level crowded platform scene — tests pedestrian detection in low-light, high-density conditions. | Aerial/elevated view of station — tests small object detection matching VisDrone training domain. |
+
+---
+
 ## 🧠 Machine Learning & Deep Learning
 
 - **YOLOv8 (You Only Look Once v8)** — Single-stage real-time object detection architecture
