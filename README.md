@@ -1,39 +1,39 @@
-# VisionAI: Real-Time Object Detection Platform
+# VisionAI: Real-Time Object Detection and Traffic Analysis Platform
 
 [![Python](https://img.shields.io/badge/Python-3.11-blue?logo=python)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.111-009688?logo=fastapi)](https://fastapi.tiangolo.com)
 [![YOLOv8](https://img.shields.io/badge/YOLOv8-Ultralytics-purple)](https://ultralytics.com)
 [![React](https://img.shields.io/badge/React-18-61DAFB?logo=react)](https://react.dev)
+[![Tailwind](https://img.shields.io/badge/Tailwind-3.4-38B2AC?logo=tailwindcss)](https://tailwindcss.com)
 [![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker)](https://docker.com)
 
-VisionAI is a full-stack application for running YOLOv8 object detection on a live webcam stream, uploaded images, and uploaded videos. It also includes a simple object tracker, motion-based activity labels, an evaluation pipeline, and a YOLOv8s model fine-tuned on the VisDrone traffic dataset.
+VisionAI is a full-stack application that runs YOLOv8 object detection on a live webcam stream, uploaded images, and uploaded videos. It detects vehicles, pedestrians, and cyclists, tracks them across frames, and includes a YOLOv8s model fine-tuned on the VisDrone dataset, an evaluation pipeline, small-object detection with SAHI, and an ablation study.
 
-It is a portfolio project built to practise the whole path from model training to a deployed web interface. It is not a finished surveillance product.
+It is a portfolio project built to practise the full path from model training to a working web interface. It is a prototype, not a finished surveillance product. Parts that are incomplete are marked clearly below.
 
 ---
 
-## What it does
+## Features
 
-| Feature | Description |
-| --- | --- |
-| Live webcam detection | Streams frames over WebSocket and returns annotated detections |
-| Image and video upload | Supports JPEG/PNG images and MP4/AVI/MOV videos, with an adjustable confidence threshold |
-| Object tracking | Keeps a persistent ID per object across frames using a centroid tracker |
-| Activity labels | Describes each tracked object (for example "walking" or "running") from its motion |
-| Evaluation pipeline | Computes mAP, precision, recall, F1, ROC-AUC, confusion matrix, and PR curve on a dataset |
-| Analytics dashboard | Shows detection history, class frequency, and CSV export |
-| Docker and Codespaces | Runs with a single `docker-compose up` or inside GitHub Codespaces |
-
-Two details worth knowing:
-
-- The activity labels are heuristics based on tracked movement. They are not produced by a trained action-recognition model.
-- The tracker matches objects by nearest centroid, so IDs can switch when objects overlap or leave and re-enter the frame.
+| Feature | Status | Description |
+| --- | --- | --- |
+| Live webcam detection | Working | Streams frames over WebSocket and returns annotated detections |
+| Image and video upload | Working | JPEG/PNG images and MP4/AVI/MOV videos, adjustable confidence threshold |
+| Fine-tuned VisDrone model | Working | YOLOv8s trained on 10 traffic-related classes (see results below) |
+| Small-object detection (SAHI) | Working | Tiled inference to catch small objects a single pass misses |
+| Ablation study | Done | Compares the effect of key settings on detection quality |
+| Object tracking | Working | Persistent IDs across frames using a centroid tracker |
+| Activity labels | Working (heuristic) | Describes tracked objects from their motion, not from a trained model |
+| Evaluation pipeline | Working | mAP, precision, recall, F1, ROC-AUC, confusion matrix, PR curve |
+| Analytics dashboard | Working | Detection history, class frequency, CSV export |
+| Speed estimation | Experimental | Implemented but not yet accurate (see below) |
+| Docker and Codespaces | Working | One-command setup |
 
 ---
 
 ## Fine-tuned model: VisDrone
 
-I fine-tuned YOLOv8s on the [VisDrone](https://github.com/VisDrone/VisDrone-Dataset) dataset (10 classes: pedestrian, people, bicycle, car, van, truck, tricycle, awning-tricycle, bus, motor). Training was done in a separate Kaggle notebook: [web-monitor-py](https://www.kaggle.com/code/amartya02509/web-monitor-py).
+I fine-tuned YOLOv8s on the [VisDrone](https://github.com/VisDrone/VisDrone-Dataset) dataset, which has 10 classes: pedestrian, people, bicycle, car, van, truck, tricycle, awning-tricycle, bus, and motor. Training was done in a separate Kaggle notebook: [web-monitor-py](https://www.kaggle.com/code/amartya02509/web-monitor-py).
 
 | Setting / metric | Value |
 | --- | --- |
@@ -47,16 +47,71 @@ I fine-tuned YOLOv8s on the [VisDrone](https://github.com/VisDrone/VisDrone-Data
 
 Per-class results vary a lot. Cars are detected best (mAP@0.5 of 88.6%). Awning-tricycles are weakest (23.3%). Small and crowded objects are the main difficulty, which is typical for drone imagery.
 
-Weights: [add the path or download link for `best.pt` here]. The `/model/reload` endpoint can load custom weights at runtime.
+Weights: [add the path or download link for `best.pt`]. The `/model/reload` endpoint can load custom weights at runtime.
+
+---
+
+## Small-object detection with SAHI
+
+Aerial and CCTV footage contains many small objects that a standard single-pass detector misses. I added [SAHI](https://github.com/obss/sahi) (Slicing Aided Hyper Inference). It splits each frame into overlapping tiles, runs detection on each tile, and merges the results.
+
+| Setting | Value |
+| --- | --- |
+| Tile size | [e.g. 640 x 640] |
+| Overlap | [e.g. 20%] |
+| Merge method | [e.g. NMS, IoU threshold] |
+
+| Method | mAP@0.5 | Recall | Time per image |
+| --- | --- | --- | --- |
+| Standard inference | [ ] | [ ] | [ ] |
+| With SAHI | [ ] | [ ] | [ ] |
+
+[Two sentences on what you found, for example the change in recall on small objects and the cost in speed.]
+
+How to use it: [command or API option, and where the code lives]
+
+---
+
+## Ablation study
+
+I compared the effect of [the factors you varied, e.g. model size, input resolution, confidence threshold, augmentation, SAHI on or off] on [dataset split].
+
+| Experiment | Change | mAP@0.5 | mAP@0.5:0.95 | Notes |
+| --- | --- | --- | --- | --- |
+| Baseline | YOLOv8s, default settings | [ ] | [ ] | |
+| [Variant 1] | [ ] | [ ] | [ ] | |
+| [Variant 2] | [ ] | [ ] | [ ] | |
+
+Main findings: [two or three plain sentences on what helped, what did not, and why].
+
+Code and logs: `experiments/` [confirm path]
+
+---
+
+## Speed estimation (experimental)
+
+The project includes a first attempt at estimating object speed from tracked movement. It does **not** currently give reliable results, so treat any speed value it shows as indicative only.
+
+**How it works:** the tracker follows each object across frames, and speed is calculated from the distance moved between frames and the video frame rate.
+
+**Known problems:**
+
+- [Describe what you actually see, for example speeds that are too high or low, or values that jump between frames.]
+- Pixel distance is converted to real distance with [describe: a fixed scale / no calibration].
+- Object IDs from the centroid tracker can switch, which breaks the distance calculation.
+
+**Planned fix:** calibrate the camera view (for example a homography that maps the road plane to metres using a known reference distance), smooth positions over several frames, and switch to a stronger tracker.
 
 ---
 
 ## Limitations
 
-- Detection quality depends on the model. The VisDrone model is trained on aerial views and will do worse on ordinary ground-level webcam footage.
-- Recall is about 53%, so a large share of objects are missed, especially small ones.
-- The centroid tracker is simple and not designed for crowded scenes.
-- There is no authentication or rate limiting, so it should not be exposed publicly as is.
+- The VisDrone model is trained on aerial views and will do worse on ordinary ground-level webcam footage.
+- Recall is about 53%, so many objects are missed, especially small ones.
+- The centroid tracker is simple. IDs can switch when objects overlap or leave and re-enter the frame.
+- Activity labels are heuristics based on motion, not a trained action-recognition model.
+- Speed estimation is not accurate yet.
+- There is no authentication or rate limiting, so do not expose the API publicly as it is.
 
 ---
 
@@ -153,7 +208,7 @@ web_monitoring-/
 ├── frontend/
 │   └── src/                 # Pages (Live, Upload, Evaluate, Dashboard) and components
 ├── training/                # [describe: fine-tuning code and configs]
-├── experiments/             # [describe: experiment notes or runs]
+├── experiments/             # [describe: ablation and SAHI experiments]
 ├── evaluation/
 │   ├── run_eval.py          # CLI evaluation script
 │   └── datasets/            # Place datasets here
@@ -165,14 +220,12 @@ web_monitoring-/
 
 ## Roadmap
 
-These are ideas, not features that exist yet:
+These are ideas, not existing features:
 
+- Fix and calibrate speed estimation
 - Zone-based intrusion alerts
-- Speed estimation
-- Small-object detection with tiled inference (SAHI)
-- An ablation study across model sizes and settings
-- Multi-camera support
 - Stronger tracking (for example ByteTrack)
+- Multi-camera support
 - API-key authentication and rate limiting
 
 ---
