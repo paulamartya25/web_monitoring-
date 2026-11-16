@@ -9,7 +9,7 @@
 
 VisionAI is a full-stack application that runs YOLOv8 object detection on a live webcam stream, uploaded images, and uploaded videos. It detects vehicles, pedestrians, and cyclists, tracks them across frames, and includes a YOLOv8s model fine-tuned on the VisDrone dataset, an evaluation pipeline, small-object detection with SAHI, and an ablation study.
 
-It is a portfolio project built to practise the full path from model training to a working web interface. It is a prototype, not a finished surveillance product. Parts that are incomplete are marked clearly below.
+It is a portfolio project built to practise the full path from model training to a working web interface. It is a prototype, not a finished surveillance product, and the parts that are incomplete are marked clearly below.
 
 ---
 
@@ -19,14 +19,14 @@ It is a portfolio project built to practise the full path from model training to
 | --- | --- | --- |
 | Live webcam detection | Working | Streams frames over WebSocket and returns annotated detections |
 | Image and video upload | Working | JPEG/PNG images and MP4/AVI/MOV videos, adjustable confidence threshold |
-| Fine-tuned VisDrone model | Working | YOLOv8s trained on 10 traffic-related classes (see results below) |
-| Small-object detection (SAHI) | Working | Tiled inference to catch small objects a single pass misses |
-| Ablation study | Done | Compares the effect of key settings on detection quality |
+| Fine-tuned VisDrone model | Working | YOLOv8s trained on 10 aerial traffic classes (results below) |
+| Small-object detection (SAHI) | Working | Tiled inference that finds small objects a single pass misses |
+| Ablation study | Done | Compares model size, input resolution, and fine-tuning |
 | Object tracking | Working | Persistent IDs across frames using a centroid tracker |
 | Activity labels | Working (heuristic) | Describes tracked objects from their motion, not from a trained model |
 | Evaluation pipeline | Working | mAP, precision, recall, F1, ROC-AUC, confusion matrix, PR curve |
 | Analytics dashboard | Working | Detection history, class frequency, CSV export |
-| Speed estimation | Experimental | Implemented but not yet accurate (see below) |
+| Speed estimation and speeding alerts | Experimental | Implemented but not yet accurate (see below) |
 | Docker and Codespaces | Working | One-command setup |
 
 ---
@@ -38,14 +38,15 @@ I fine-tuned YOLOv8s on the [VisDrone](https://github.com/VisDrone/VisDrone-Data
 | Setting / metric | Value |
 | --- | --- |
 | Epochs | 81 |
+| Input resolution | 1280 px |
 | Hardware and time | Tesla T4, about 8.4 hours |
 | mAP@0.5 | 56.01% |
 | mAP@0.5:0.95 | 34.3% |
 | Precision | 64.10% |
 | Recall | 53.18% |
-| Inference speed | about 9.7 ms per image (as reported in the notebook) |
+| Inference speed | about 9.7 ms per image in the notebook ([state the GPU and what is timed]) |
 
-Per-class results vary a lot. Cars are detected best (mAP@0.5 of 88.6%). Awning-tricycles are weakest (23.3%). Small and crowded objects are the main difficulty, which is typical for drone imagery.
+Cars are detected best (mAP@0.5 of 88.6%). Awning-tricycles are weakest (23.3%). Small and crowded objects are the main difficulty, which is typical for drone imagery.
 
 Weights: [add the path or download link for `best.pt`]. The `/model/reload` endpoint can load custom weights at runtime.
 
@@ -53,54 +54,59 @@ Weights: [add the path or download link for `best.pt`]. The `/model/reload` endp
 
 ## Small-object detection with SAHI
 
-Aerial and CCTV footage contains many small objects that a standard single-pass detector misses. I added [SAHI](https://github.com/obss/sahi) (Slicing Aided Hyper Inference). It splits each frame into overlapping tiles, runs detection on each tile, and merges the results.
+Aerial footage contains many small, distant objects that a standard single-pass detector misses. I added [SAHI](https://github.com/obss/sahi) (Slicing Aided Hyper Inference). It splits each frame into overlapping tiles, runs detection on each tile, and merges the results.
 
 | Setting | Value |
 | --- | --- |
-| Tile size | [e.g. 640 x 640] |
-| Overlap | [e.g. 20%] |
-| Merge method | [e.g. NMS, IoU threshold] |
+| Tile size | 512 x 512 |
+| Overlap | 20% (0.2 height and width ratio) |
+| Merge method | Non-Maximum Merging (NMM), IoU threshold 0.5 |
 
 | Method | mAP@0.5 | Recall | Time per image |
 | --- | --- | --- | --- |
-| Standard inference | [ ] | [ ] | [ ] |
-| With SAHI | [ ] | [ ] | [ ] |
+| Standard inference (1280 px) | 56.01% | 53.18% | about 33 ms (about 30 FPS) |
+| With SAHI (512 px tiles) | [measured value] | [measured value] | about 85 ms (about 12 FPS) |
 
-[Two sentences on what you found, for example the change in recall on small objects and the cost in speed.]
+SAHI increased the number of detected objects in dense aerial scenes by about 48%, and recall improved on small and distant objects. The cost is speed: running many overlapping tiles per frame makes inference roughly 2.5 times slower. That makes SAHI better suited to high-resolution still images or batch processing than to 30 FPS live video.
 
-How to use it: [command or API option, and where the code lives]
+Timings measured on [state the hardware].
+
+How to use it: [command or API option, for example `python <script>.py --image path/to/image.jpg --benchmark`]
 
 ---
 
 ## Ablation study
 
-I compared the effect of [the factors you varied, e.g. model size, input resolution, confidence threshold, augmentation, SAHI on or off] on [dataset split].
+I compared model size, input resolution, and domain fine-tuning on the VisDrone2019-DET validation split (548 images, 10 aerial traffic classes, 38,759 annotated instances).
 
-| Experiment | Change | mAP@0.5 | mAP@0.5:0.95 | Notes |
-| --- | --- | --- | --- | --- |
-| Baseline | YOLOv8s, default settings | [ ] | [ ] | |
-| [Variant 1] | [ ] | [ ] | [ ] | |
-| [Variant 2] | [ ] | [ ] | [ ] | |
+| Experiment | Change | mAP@0.5 | Precision | Recall | Notes |
+| --- | --- | --- | --- | --- | --- |
+| A1 Baseline | YOLOv8n, COCO pretrained, 640 px, no fine-tuning | 0.69% | 7.89% | 1.47% | Evaluated without adaptation (see note below) |
+| A2 | + Fine-tuning on VisDrone (640 px, 50 epochs) | 22.29% | 52.47% | 27.43% | +21.60 mAP |
+| A3 | + Higher resolution (1280 px, 50 epochs) | 37.25% | 57.69% | 44.74% | +14.96 mAP |
+| A4 (best) | + YOLOv8s backbone (1280 px, 81 epochs) | 56.01% | 64.10% | 53.18% | +18.76 mAP |
 
-Main findings: [two or three plain sentences on what helped, what did not, and why].
+Main findings:
 
-Code and logs: `experiments/` [confirm path]
+1. **Input resolution mattered a lot.** Going from 640 px to 1280 px added about 15 mAP points, likely because aerial objects are often smaller than 30 x 30 pixels at the lower resolution.
+2. **A larger model and longer training helped further.** A4 changed two things at once (YOLOv8n to YOLOv8s, and 50 to 81 epochs), so the +18.76 mAP is a combined effect and I can't separate the two from this experiment.
+3. **The COCO-pretrained model scored almost zero (0.69%).** This reflects a large domain gap (top-down aerial views, very small objects) and also that VisDrone's classes differ from COCO's. [Describe how COCO classes were mapped to VisDrone classes for this test.]
+
+Code and logs: `experiments/ablation_study.py` and `experiments/ablation_results.csv`
 
 ---
 
 ## Speed estimation (experimental)
 
-The project includes a first attempt at estimating object speed from tracked movement. It does **not** currently give reliable results, so treat any speed value it shows as indicative only.
-
-**How it works:** the tracker follows each object across frames, and speed is calculated from the distance moved between frames and the video frame rate.
+The project includes a first attempt at estimating vehicle speed from tracked movement and flagging "speeding" vehicles. It does **not** currently give reliable results, so treat any speed value or speeding alert as indicative only. The code is in `backend/core/traffic_analyzer.py`.
 
 **Known problems:**
 
-- [Describe what you actually see, for example speeds that are too high or low, or values that jump between frames.]
-- Pixel distance is converted to real distance with [describe: a fixed scale / no calibration].
-- Object IDs from the centroid tracker can switch, which breaks the distance calculation.
+- Estimates fluctuate between consecutive frames (for example jumping between 15 km/h and 60 km/h), because bounding-box positions jitter slightly, especially for slow or stationary vehicles.
+- Pixel distance is converted to real distance with a fixed scale factor (`displacement_px * 0.12 * 30 fps`). It uses no camera calibration, camera angle, or real-world reference, and it assumes 30 FPS.
+- The centroid tracker can switch object IDs during occlusions. That produces large artificial jumps in position and can trigger false speeding alerts.
 
-**Planned fix:** calibrate the camera view (for example a homography that maps the road plane to metres using a known reference distance), smooth positions over several frames, and switch to a stronger tracker.
+**Planned fix:** calibrate the view (for example a homography that maps the road plane to metres using a known reference distance), read the real frame rate from the video, smooth positions over several frames, and switch to a stronger tracker.
 
 ---
 
@@ -108,9 +114,10 @@ The project includes a first attempt at estimating object speed from tracked mov
 
 - The VisDrone model is trained on aerial views and will do worse on ordinary ground-level webcam footage.
 - Recall is about 53%, so many objects are missed, especially small ones.
+- SAHI improves small-object recall but is too slow for 30 FPS live video.
 - The centroid tracker is simple. IDs can switch when objects overlap or leave and re-enter the frame.
 - Activity labels are heuristics based on motion, not a trained action-recognition model.
-- Speed estimation is not accurate yet.
+- Speed estimation and speeding alerts are not accurate yet.
 - There is no authentication or rate limiting, so do not expose the API publicly as it is.
 
 ---
@@ -172,6 +179,12 @@ python evaluation/run_eval.py --dataset custom --data-path ./evaluation/datasets
 python evaluation/run_eval.py --dataset coco128 --model yolov8s
 ```
 
+- **Ablation study:**
+
+```bash
+python experiments/ablation_study.py
+```
+
 ---
 
 ## API
@@ -199,16 +212,19 @@ web_monitoring-/
 ├── backend/
 │   ├── main.py              # FastAPI app
 │   ├── core/
-│   │   ├── detector.py      # YOLOv8 inference wrapper
-│   │   ├── tracker.py       # Centroid tracker
-│   │   ├── activity.py      # Motion-based activity labels
-│   │   └── evaluator.py     # Metrics
+│   │   ├── detector.py          # YOLOv8 inference wrapper
+│   │   ├── tracker.py           # Centroid tracker
+│   │   ├── activity.py          # Motion-based activity labels
+│   │   ├── traffic_analyzer.py  # Speed estimation (experimental)
+│   │   └── evaluator.py         # Metrics
 │   ├── routers/             # detect, stream, evaluate endpoints
 │   └── utils/               # Drawing and video helpers
 ├── frontend/
 │   └── src/                 # Pages (Live, Upload, Evaluate, Dashboard) and components
 ├── training/                # [describe: fine-tuning code and configs]
-├── experiments/             # [describe: ablation and SAHI experiments]
+├── experiments/
+│   ├── ablation_study.py    # Ablation experiments
+│   └── ablation_results.csv # Ablation results
 ├── evaluation/
 │   ├── run_eval.py          # CLI evaluation script
 │   └── datasets/            # Place datasets here
@@ -219,8 +235,6 @@ web_monitoring-/
 ---
 
 ## Roadmap
-
-These are ideas, not existing features:
 
 - Fix and calibrate speed estimation
 - Zone-based intrusion alerts
