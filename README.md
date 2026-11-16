@@ -20,7 +20,7 @@ It is a portfolio project built to practise the full path from model training to
 | Live webcam detection | Working | Streams frames over WebSocket and returns annotated detections |
 | Image and video upload | Working | JPEG/PNG images and MP4/AVI/MOV videos, adjustable confidence threshold |
 | Fine-tuned VisDrone model | Working | YOLOv8s trained on 10 aerial traffic classes (results below) |
-| Small-object detection (SAHI) | Working | Tiled inference that finds small objects a single pass misses |
+| Small-object detection (SAHI) | Working | Tiled inference that finds more small objects, at a speed cost |
 | Ablation study | Done | Compares model size, input resolution, and fine-tuning |
 | Object tracking | Working | Persistent IDs across frames using a centroid tracker |
 | Activity labels | Working (heuristic) | Describes tracked objects from their motion, not from a trained model |
@@ -39,22 +39,22 @@ I fine-tuned YOLOv8s on the [VisDrone](https://github.com/VisDrone/VisDrone-Data
 | --- | --- |
 | Epochs | 81 |
 | Input resolution | 1280 px |
-| Hardware and time | Tesla T4, about 8.4 hours |
+| Training hardware and time | Tesla T4, about 8.4 hours |
 | mAP@0.5 | 56.01% |
 | mAP@0.5:0.95 | 34.3% |
 | Precision | 64.10% |
 | Recall | 53.18% |
-| Inference speed | about 9.7 ms per image in the notebook ([state the GPU and what is timed]) |
+| Inference speed | about 33 ms per image (about 30 FPS) at 1280 px on a Tesla T4 |
 
 Cars are detected best (mAP@0.5 of 88.6%). Awning-tricycles are weakest (23.3%). Small and crowded objects are the main difficulty, which is typical for drone imagery.
 
-Weights: [add the path or download link for `best.pt`]. The `/model/reload` endpoint can load custom weights at runtime.
+
 
 ---
 
 ## Small-object detection with SAHI
 
-Aerial footage contains many small, distant objects that a standard single-pass detector misses. I added [SAHI](https://github.com/obss/sahi) (Slicing Aided Hyper Inference). It splits each frame into overlapping tiles, runs detection on each tile, and merges the results.
+Aerial footage contains many small, distant objects that a standard single-pass detector can miss. I added [SAHI](https://github.com/obss/sahi) (Slicing Aided Hyper Inference). It splits each frame into overlapping tiles, runs detection on each tile, and merges the results.
 
 | Setting | Value |
 | --- | --- |
@@ -62,16 +62,20 @@ Aerial footage contains many small, distant objects that a standard single-pass 
 | Overlap | 20% (0.2 height and width ratio) |
 | Merge method | Non-Maximum Merging (NMM), IoU threshold 0.5 |
 
-| Method | mAP@0.5 | Recall | Time per image |
-| --- | --- | --- | --- |
-| Standard inference (1280 px) | 56.01% | 53.18% | about 33 ms (about 30 FPS) |
-| With SAHI (512 px tiles) | [measured value] | [measured value] | about 85 ms (about 12 FPS) |
+| Method | Time per image |
+| --- | --- |
+| Standard inference (1280 px) | about 33 ms (about 30 FPS) |
+| With SAHI (512 px tiles) | about 85 ms (about 12 FPS) |
 
-SAHI increased the number of detected objects in dense aerial scenes by about 48%, and recall improved on small and distant objects. The cost is speed: running many overlapping tiles per frame makes inference roughly 2.5 times slower. That makes SAHI better suited to high-resolution still images or batch processing than to 30 FPS live video.
+Timings measured on an NVIDIA Tesla T4 GPU (Kaggle cloud runtime).
 
-Timings measured on [state the hardware].
+In dense aerial scenes, SAHI produced about 48% more detection candidates than standard inference. This counts detections, not verified accuracy; I have not yet reported mAP for the SAHI pipeline on the full validation set. The cost is speed: running many overlapping tiles per frame makes inference roughly 2.5 times slower. That makes SAHI better suited to high-resolution still images or batch processing than to 30 FPS live video.
 
-How to use it: [command or API option, for example `python <script>.py --image path/to/image.jpg --benchmark`]
+How to use it:
+
+```bash
+python experiments/sahi_integration.py --image path/to/image.jpg --benchmark
+```
 
 ---
 
@@ -81,7 +85,7 @@ I compared model size, input resolution, and domain fine-tuning on the VisDrone2
 
 | Experiment | Change | mAP@0.5 | Precision | Recall | Notes |
 | --- | --- | --- | --- | --- | --- |
-| A1 Baseline | YOLOv8n, COCO pretrained, 640 px, no fine-tuning | 0.69% | 7.89% | 1.47% | Evaluated without adaptation (see note below) |
+| A1 Baseline | YOLOv8n, COCO pretrained, 640 px, no fine-tuning | 0.69% | 7.89% | 1.47% | Evaluated without adaptation |
 | A2 | + Fine-tuning on VisDrone (640 px, 50 epochs) | 22.29% | 52.47% | 27.43% | +21.60 mAP |
 | A3 | + Higher resolution (1280 px, 50 epochs) | 37.25% | 57.69% | 44.74% | +14.96 mAP |
 | A4 (best) | + YOLOv8s backbone (1280 px, 81 epochs) | 56.01% | 64.10% | 53.18% | +18.76 mAP |
@@ -89,8 +93,8 @@ I compared model size, input resolution, and domain fine-tuning on the VisDrone2
 Main findings:
 
 1. **Input resolution mattered a lot.** Going from 640 px to 1280 px added about 15 mAP points, likely because aerial objects are often smaller than 30 x 30 pixels at the lower resolution.
-2. **A larger model and longer training helped further.** A4 changed two things at once (YOLOv8n to YOLOv8s, and 50 to 81 epochs), so the +18.76 mAP is a combined effect and I can't separate the two from this experiment.
-3. **The COCO-pretrained model scored almost zero (0.69%).** This reflects a large domain gap (top-down aerial views, very small objects) and also that VisDrone's classes differ from COCO's. [Describe how COCO classes were mapped to VisDrone classes for this test.]
+2. **A larger model and longer training helped further.** A4 changed two things at once (YOLOv8n to YOLOv8s, and 50 to 81 epochs), so the +18.76 mAP is a combined effect. This experiment cannot separate the two.
+3. **The COCO-pretrained model scored almost zero (0.69%).** This baseline shows that fine-tuning is needed, but it does not by itself show that COCO features are useless. VisDrone is a top-down aerial view with very small objects, and its class list differs from COCO's.
 
 Code and logs: `experiments/ablation_study.py` and `experiments/ablation_results.csv`
 
@@ -114,7 +118,7 @@ The project includes a first attempt at estimating vehicle speed from tracked mo
 
 - The VisDrone model is trained on aerial views and will do worse on ordinary ground-level webcam footage.
 - Recall is about 53%, so many objects are missed, especially small ones.
-- SAHI improves small-object recall but is too slow for 30 FPS live video.
+- SAHI finds more small objects but is too slow for 30 FPS live video, and its accuracy has not been measured on the full validation set.
 - The centroid tracker is simple. IDs can switch when objects overlap or leave and re-enter the frame.
 - Activity labels are heuristics based on motion, not a trained action-recognition model.
 - Speed estimation and speeding alerts are not accurate yet.
@@ -210,26 +214,27 @@ Interactive docs are at `http://localhost:8000/docs`.
 ```
 web_monitoring-/
 ├── backend/
-│   ├── main.py              # FastAPI app
+│   ├── main.py                  # FastAPI app
 │   ├── core/
 │   │   ├── detector.py          # YOLOv8 inference wrapper
 │   │   ├── tracker.py           # Centroid tracker
 │   │   ├── activity.py          # Motion-based activity labels
 │   │   ├── traffic_analyzer.py  # Speed estimation (experimental)
 │   │   └── evaluator.py         # Metrics
-│   ├── routers/             # detect, stream, evaluate endpoints
-│   └── utils/               # Drawing and video helpers
+│   ├── routers/                 # detect, stream, evaluate endpoints
+│   └── utils/                   # Drawing and video helpers
 ├── frontend/
-│   └── src/                 # Pages (Live, Upload, Evaluate, Dashboard) and components
-├── training/                # [describe: fine-tuning code and configs]
+│   └── src/                     # Pages (Live, Upload, Evaluate, Dashboard) and components
+├── training/                    # [describe: fine-tuning code and configs]
 ├── experiments/
-│   ├── ablation_study.py    # Ablation experiments
-│   └── ablation_results.csv # Ablation results
+│   ├── ablation_study.py        # Ablation experiments
+│   ├── ablation_results.csv     # Ablation results
+│   └── sahi_integration.py      # SAHI tiled inference and benchmark
 ├── evaluation/
-│   ├── run_eval.py          # CLI evaluation script
-│   └── datasets/            # Place datasets here
+│   ├── run_eval.py              # CLI evaluation script
+│   └── datasets/                # Place datasets here
 ├── docker-compose.yml
-└── .devcontainer/           # Codespaces config
+└── .devcontainer/               # Codespaces config
 ```
 
 ---
@@ -237,6 +242,7 @@ web_monitoring-/
 ## Roadmap
 
 - Fix and calibrate speed estimation
+- Measure SAHI accuracy (mAP and recall) on the full validation set
 - Zone-based intrusion alerts
 - Stronger tracking (for example ByteTrack)
 - Multi-camera support
