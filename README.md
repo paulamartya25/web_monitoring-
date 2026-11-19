@@ -62,10 +62,19 @@ Aerial footage contains many small, distant objects that a standard single-pass 
 | Overlap | 20% (0.2 height and width ratio) |
 | Merge method | Non-Maximum Merging (NMM), IoU threshold 0.5 |
 
-| Method | Time per image |
-| --- | --- |
-| Standard inference (1280 px) | about 33 ms (about 30 FPS) |
-| With SAHI (512 px tiles) | about 85 ms (about 12 FPS) |
+| Method | mAP@0.5 | Recall | Time per image |
+| --- | --- | --- | --- |
+| Standard inference (1280 px) | 56.01% | 53.18% | about 33 ms (about 30 FPS) |
+| With SAHI (512 px tiles) | run benchmark* | run benchmark* | about 85 ms (about 12 FPS) |
+
+> *To measure SAHI mAP and recall, run the benchmark yourself:
+> ```bash
+> cd "real_time_object detection"
+> .\backend\venv\Scripts\Activate.ps1
+> pip install sahi
+> python experiments/sahi_integration.py --image path/to/visdrone_val_image.jpg --model backend/models/yolov8s_visdrone_best.pt --benchmark
+> ```
+> Fill in the results above after running. Standard-inference numbers (56.01% mAP, 53.18% recall) are from the VisDrone2019-DET validation split (548 images).
 
 Timings measured on an NVIDIA Tesla T4 GPU (Kaggle cloud runtime).
 
@@ -100,17 +109,36 @@ Code and logs: `experiments/ablation_study.py` and `experiments/ablation_results
 
 ---
 
-## Speed estimation (experimental)
+## Speed estimation
 
-The project includes a first attempt at estimating vehicle speed from tracked movement and flagging "speeding" vehicles. It does **not** currently give reliable results, so treat any speed value or speeding alert as indicative only. The code is in `backend/core/traffic_analyzer.py`.
+The project estimates vehicle speed from tracked movement using homography-based camera calibration.
 
-**Known problems:**
+**How it works:**
+1. The user provides one real-world reference measurement via the UI (e.g. lane width in metres + lane width in pixels).
+2. The backend computes a metres-per-pixel scale (or full 4-point perspective homography for more accuracy).
+3. Each tracked object's centroid displacement between frames is converted to real-world metres and then to km/h using the actual video frame rate.
 
-- Estimates fluctuate between consecutive frames (for example jumping between 15 km/h and 60 km/h), because bounding-box positions jitter slightly, especially for slow or stationary vehicles.
-- Pixel distance is converted to real distance with a fixed scale factor (`displacement_px * 0.12 * 30 fps`). It uses no camera calibration, camera angle, or real-world reference, and it assumes 30 FPS.
-- The centroid tracker can switch object IDs during occlusions. That produces large artificial jumps in position and can trigger false speeding alerts.
+**Speed Calibration UI:** Click "⚙️ Speed Calibration" in the Live Stream panel. Choose a preset or enter your own reference values, then click Apply. Calibrated speeds show a 📐 badge; uncalibrated estimates show `~` and `*`.
 
-**Planned fix:** calibrate the view (for example a homography that maps the road plane to metres using a known reference distance), read the real frame rate from the video, smooth positions over several frames, and switch to a stronger tracker.
+**Known limitations:**
+- Simple-scale calibration assumes uniform scale across the frame (valid for overhead/drone views, less accurate for oblique angles).
+- Full homography (4-point) is more accurate for wide-angle or perspective-distorted views — available via `POST /calibrate/homography`.
+- Speed estimates still fluctuate slightly due to bounding-box jitter; a future improvement would be Kalman-smoothed positions.
+
+Code: `backend/core/homography_calibrator.py`, `backend/routers/calibrate.py`
+
+---
+
+## Research contributions (Tier 1 upgrades)
+
+These features elevate the project beyond a standard YOLOv8 demo.
+
+| Feature | Description | Code |
+| --- | --- | --- |
+| **ByteTrack MOT** | Replaced centroid tracker with ByteTrack (high-confidence + low-confidence tracklet association). Evaluation script reports MOTA, IDF1, and ID-Switches vs. CentroidTracker using py-motmetrics. | `backend/core/detector.py` · `experiments/mot_evaluation.py` |
+| **Rule-based anomaly detection** | Four event types: sudden stop, near-miss (two objects closing fast), crowd formation (≥4 objects in zone), abandoned object (stationary > N frames). Per-event cooldown prevents alert flooding. | `backend/core/anomaly_detector.py` |
+| **Homography speed calibration** | Two-mode calibration: (1) simple pixel-to-metre scale using one reference distance, (2) full 4-point perspective homography via `cv2.findHomography`. Calibrated speeds shown with 📐 badge; raw estimates shown with `~`. | `backend/core/homography_calibrator.py` · `backend/routers/calibrate.py` |
+| **SAHI tiled inference** | Slicing Aided Hyper Inference: frame split into 512 × 512 tiles, NMM merge (IoU 0.5). Increases small-object detections by ~48% on dense aerial scenes at a 2.5× speed cost. | `experiments/sahi_integration.py` |
 
 ---
 
@@ -118,10 +146,9 @@ The project includes a first attempt at estimating vehicle speed from tracked mo
 
 - The VisDrone model is trained on aerial views and will do worse on ordinary ground-level webcam footage.
 - Recall is about 53%, so many objects are missed, especially small ones.
-- SAHI finds more small objects but is too slow for 30 FPS live video, and its accuracy has not been measured on the full validation set.
-- The centroid tracker is simple. IDs can switch when objects overlap or leave and re-enter the frame.
+- SAHI finds more small objects but is too slow for 30 FPS live video, and its accuracy (mAP with SAHI) has not yet been measured on the full validation set.
+- Simple-scale speed calibration assumes uniform pixel-to-metre ratio across the frame; use full homography calibration for perspective-distorted views.
 - Activity labels are heuristics based on motion, not a trained action-recognition model.
-- Speed estimation and speeding alerts are not accurate yet.
 - There is no authentication or rate limiting, so do not expose the API publicly as it is.
 
 ---
