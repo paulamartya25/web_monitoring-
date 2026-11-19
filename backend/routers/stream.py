@@ -24,20 +24,22 @@ async def stream_websocket(websocket: WebSocket):
     Server returns: JSON with annotated_frame (base64), detections, fps.
     """
     await websocket.accept()
-    detector     = websocket.app.state.detector
-    tracker      = websocket.app.state.tracker
+    detector      = websocket.app.state.detector
     activity_desc = websocket.app.state.activity
-    counter      = websocket.app.state.counter
-    zone_monitor = websocket.app.state.zone_monitor
+    counter       = websocket.app.state.counter
+    zone_monitor  = websocket.app.state.zone_monitor
     traffic_stats = websocket.app.state.traffic_stats
+    anomaly_det   = websocket.app.state.anomaly
 
-    # Reset ALL state for fresh stream session (clears old video/session data)
+    # Reset ALL state for fresh stream session
+    detector.reset_tracker()           # ByteTrack: clear previous track IDs
     activity_desc.reset()
     counter.reset()
-    zone_monitor.reset() if hasattr(zone_monitor, 'reset') else None
+    zone_monitor.reset() if hasattr(zone_monitor, "reset") else None
     traffic_stats.reset()
+    anomaly_det.reset()
 
-    logger.info("WebSocket stream connected — all stats reset")
+    logger.info("WebSocket stream connected — ByteTrack + all stats reset")
     last_frame_time = 0.0
     frame_count = 0
     fps_window: list[float] = []
@@ -64,15 +66,18 @@ async def stream_websocket(websocket: WebSocket):
 
             t_start = time.time()
 
-            # Inference pipeline
-            result = detector.detect_image(frame)
-            tracked = tracker.update(result["detections"])
-            described = activity_desc.describe(tracked)
+            # ── Inference pipeline (ByteTrack) ──────────────────────────
+            # detect_and_track() runs YOLOv8 + ByteTrack in one call.
+            # It returns detections with track_id and centroid already set,
+            # so the old CentroidTracker step is no longer needed here.
+            result     = detector.detect_and_track(frame)
+            described  = activity_desc.describe(result["detections"])
+            anomalies  = anomaly_det.detect(described)
             vehicle_counts = counter.update(described)
-            zone_alerts = zone_monitor.check(described)
+            zone_alerts    = zone_monitor.check(described)
             traffic_stats.update(described, zone_alerts)
-            annotated = draw_detections(frame, described)
-            b64_out = encode_image_to_base64(annotated, quality=75)
+            annotated  = draw_detections(frame, described)
+            b64_out    = encode_image_to_base64(annotated, quality=75)
 
             t_end = time.time()
             inference_ms = (t_end - t_start) * 1000
@@ -86,14 +91,15 @@ async def stream_websocket(websocket: WebSocket):
             frame_count += 1
 
             response = {
-                "annotated_frame": b64_out,
-                "detections": described,
-                "fps": round(fps, 1),
-                "inference_ms": round(inference_ms, 1),
-                "frame_count": frame_count,
-                "vehicle_counts": vehicle_counts,
-                "zone_alerts": zone_alerts,
-                "traffic_summary": traffic_stats.summary(),
+                "annotated_frame":  b64_out,
+                "detections":       described,
+                "fps":              round(fps, 1),
+                "inference_ms":     round(inference_ms, 1),
+                "frame_count":      frame_count,
+                "vehicle_counts":   vehicle_counts,
+                "zone_alerts":      zone_alerts,
+                "anomaly_events":   anomalies,          # NEW — Tier 1
+                "traffic_summary":  traffic_stats.summary(),
             }
 
             if websocket.client_state == WebSocketState.CONNECTED:
@@ -103,6 +109,7 @@ async def stream_websocket(websocket: WebSocket):
         logger.error(f"Stream error: {e}")
     finally:
         activity_desc.reset()
+        anomaly_det.reset()
         logger.info(f"WebSocket disconnected after {frame_count} frames")
         if websocket.client_state == WebSocketState.CONNECTED:
             await websocket.close()

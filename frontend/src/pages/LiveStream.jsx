@@ -36,6 +36,7 @@ export default function LiveStream() {
   const [frameCount, setFrameCount]       = useState(0)
   const [vehicleCounts, setVehicleCounts] = useState({})
   const [zoneAlerts, setZoneAlerts]       = useState([])
+  const [anomalyEvents, setAnomalyEvents] = useState([])
   const [trafficSummary, setTrafficSummary] = useState(null)
 
   // Camera mode — aerial models work best with drone/overhead cameras
@@ -74,6 +75,7 @@ export default function LiveStream() {
         setFrameCount(data.frame_count || 0)
         setVehicleCounts(data.vehicle_counts || {})
         setZoneAlerts(data.zone_alerts || [])
+        setAnomalyEvents(data.anomaly_events || [])
         setTrafficSummary(data.traffic_summary || null)
       } catch (err) { console.error('WS parse error', err) }
     }
@@ -130,6 +132,7 @@ export default function LiveStream() {
     videoRef.current?.srcObject?.getTracks()?.forEach(t => t.stop())
     if (videoRef.current) videoRef.current.srcObject = null
     setIsStreaming(false); setDetections([]); setFps(0); setZoneAlerts([])
+    setAnomalyEvents([])
   }
 
   useEffect(() => () => stopStream(), [])
@@ -178,6 +181,40 @@ export default function LiveStream() {
             <p className="text-red-300 font-semibold text-sm">Active Alerts</p>
             {zoneAlerts.map((a, i) => <p key={i} className="text-red-400 text-xs mt-0.5">{a}</p>)}
           </div>
+        </div>
+      )}
+
+      {/* Anomaly Events Panel — ByteTrack-powered */}
+      {anomalyEvents.length > 0 && (
+        <div className="mb-4 space-y-2">
+          {anomalyEvents.map((ev, i) => {
+            const isHigh = ev.severity === 'high'
+            return (
+              <div key={i} className={`flex items-start gap-2 rounded-xl p-3 border
+                ${isHigh
+                  ? 'bg-red-900/30 border-red-600/50'
+                  : 'bg-yellow-900/20 border-yellow-600/40'}`}>
+                <AlertTriangle className={`w-4 h-4 shrink-0 mt-0.5
+                  ${isHigh ? 'text-red-400' : 'text-yellow-400'}`} />
+                <div className="flex-1">
+                  <p className={`text-xs font-semibold
+                    ${isHigh ? 'text-red-300' : 'text-yellow-300'}`}>
+                    {ev.type.replace(/_/g, ' ').toUpperCase()}
+                  </p>
+                  <p className={`text-xs mt-0.5
+                    ${isHigh ? 'text-red-400' : 'text-yellow-400'}`}>
+                    {ev.message}
+                  </p>
+                </div>
+                <span className={`text-xs px-2 py-0.5 rounded-full border shrink-0
+                  ${isHigh
+                    ? 'bg-red-700/40 text-red-200 border-red-600/40'
+                    : 'bg-yellow-700/30 text-yellow-200 border-yellow-600/30'}`}>
+                  {ev.severity}
+                </span>
+              </div>
+            )
+          })}
         </div>
       )}
 

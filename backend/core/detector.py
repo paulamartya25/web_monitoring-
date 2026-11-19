@@ -84,6 +84,77 @@ class YOLODetector:
             "annotated_image": image.copy(),  # raw; drawing is done in drawing.py
         }
 
+    def detect_and_track(
+        self,
+        image: np.ndarray,
+        conf: float = None,
+        iou: float = None,
+    ) -> dict:
+        """
+        Run ByteTrack multi-object tracking on a single frame.
+        Uses ultralytics model.track() with persist=True so track state
+        is maintained across consecutive calls on the same YOLO instance.
+
+        Returns the same dict shape as detect_image() but with
+        'track_id' and 'centroid' already populated on each detection.
+        """
+        conf = conf or settings.CONFIDENCE_THRESHOLD
+        iou  = iou  or settings.IOU_THRESHOLD
+
+        results = self.model.track(
+            source=image,
+            conf=conf,
+            iou=iou,
+            max_det=settings.MAX_DETECTIONS,
+            tracker="bytetrack.yaml",   # bundled with ultralytics
+            persist=True,               # keep tracker state between frames
+            verbose=False,
+        )
+
+        detections = []
+        result = results[0]
+
+        for box in result.boxes:
+            cls_id     = int(box.cls[0])
+            cls_name   = self.class_names[cls_id]
+            confidence = float(box.conf[0])
+            x1, y1, x2, y2 = box.xyxy[0].tolist()
+
+            # ByteTrack assigns an integer track ID; None if object is unconfirmed
+            track_id = int(box.id[0]) if (box.id is not None) else -1
+
+            cx = int((x1 + x2) / 2)
+            cy = int((y1 + y2) / 2)
+
+            detections.append({
+                "class_id":   cls_id,
+                "class_name": cls_name,
+                "confidence": round(confidence, 4),
+                "bbox":       [round(x1), round(y1), round(x2), round(y2)],
+                "track_id":   track_id,
+                "centroid":   [cx, cy],
+            })
+
+        return {
+            "detections":      detections,
+            "annotated_image": image.copy(),
+        }
+
+    def reset_tracker(self):
+        """
+        Reset ByteTrack state.  Call this when a new stream session starts
+        so tracks from the previous session don't bleed into the new one.
+        """
+        if hasattr(self.model, "predictor") and self.model.predictor is not None:
+            try:
+                for tracker in self.model.predictor.trackers:
+                    tracker.reset()
+                logger.info("ByteTrack state reset.")
+            except Exception as e:
+                # Fallback: drop the predictor — ultralytics reinitialises it
+                self.model.predictor = None
+                logger.info(f"ByteTrack reset via predictor drop ({e})")
+
     def reload(self, model_size: str):
         """Hot-swap the model at runtime."""
         self.model_size = model_size

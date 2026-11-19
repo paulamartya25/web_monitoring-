@@ -13,6 +13,7 @@ from core.detector import YOLODetector
 from core.tracker import CentroidTracker
 from core.traffic_analyzer import TrafficActivityDescriptor
 from core.zone_config import VehicleCounter, ZoneMonitor, TrafficStats
+from core.anomaly_detector import AnomalyDetector
 from db.database import init_db
 
 logging.basicConfig(
@@ -35,12 +36,13 @@ async def lifespan(app: FastAPI):
     logger.info("Database initialized.")
 
     # Load model + pipeline components
-    app.state.detector = YOLODetector(model_size=settings.MODEL_SIZE)
-    app.state.tracker  = CentroidTracker()
-    app.state.activity = TrafficActivityDescriptor()          # traffic-specific
-    app.state.counter  = VehicleCounter(line_y=320)          # counting line at y=320
-    app.state.zone_monitor = ZoneMonitor(zones=[])            # configure zones via API
+    app.state.detector    = YOLODetector(model_size=settings.MODEL_SIZE)
+    app.state.tracker     = CentroidTracker()           # kept for image upload (stateless)
+    app.state.activity    = TrafficActivityDescriptor() # traffic-specific activity labels
+    app.state.counter     = VehicleCounter(line_y=320)  # vehicle line-counter
+    app.state.zone_monitor = ZoneMonitor(zones=[])      # polygon zone alerts
     app.state.traffic_stats = TrafficStats()
+    app.state.anomaly     = AnomalyDetector()           # Tier 1: rule-based anomaly detection
 
     device = "CUDA (GPU)" if torch.cuda.is_available() else "CPU"
     logger.info(f"YOLOv8 loaded on {device} | Model: {settings.MODEL_SIZE}")

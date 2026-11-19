@@ -13,4 +13,6 @@ sqlalchemy>=2.0.36
 aiosqlite==0.20.0
 pydantic-settings>=2.2.1
 python-dotenv==1.0.1
-# lapx removed - tracker uses scipy (already pulled in by scikit-learn)
+# lapx removed — tracker uses scipy (pulled in by scikit-learn)
+# motmetrics is for experiments/mot_evaluation.py only (not the live server)
+# Run separately: pip install motmetrics
