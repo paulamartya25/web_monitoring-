@@ -82,7 +82,11 @@ async def start_evaluation(
     # ── Dataset / model compatibility check ───────────────────────────
     # The VisDrone model has 10 aerial classes; COCO has 80 different classes.
     # Evaluating across incompatible datasets gives meaningless metrics.
-    if model_size == "yolov8s_visdrone_best" and dataset_name in ("coco128", "coco"):
+    VISDRONE_MODEL   = model_size == "yolov8s_visdrone_best"
+    VISDRONE_DATASET = dataset_name == "visdrone"
+    COCO_DATASET     = dataset_name in ("coco128", "coco")
+
+    if VISDRONE_MODEL and COCO_DATASET:
         raise HTTPException(
             status_code=400,
             detail=(
@@ -91,6 +95,16 @@ async def start_evaluation(
                 "COCO (80 different classes). "
                 "Please select a COCO pretrained model (YOLOv8n or YOLOv8s) for COCO datasets, "
                 "or the evaluation will produce scientifically invalid results."
+            )
+        )
+    if not VISDRONE_MODEL and VISDRONE_DATASET:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Dataset mismatch: '{model_size}' is a COCO pretrained model (80 classes) "
+                "and cannot be meaningfully evaluated on VisDrone (10 different aerial classes). "
+                "Select 'YOLOv8s VisDrone — Best' to evaluate on VisDrone, "
+                "or switch to COCO128 / COCO val2017."
             )
         )
 

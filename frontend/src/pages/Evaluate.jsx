@@ -5,9 +5,20 @@ import { PlayCircle, Loader2, RefreshCw } from 'lucide-react'
 import MetricsCard from '../components/MetricsCard'
 
 const DATASETS = [
-  { value: 'coco128', label: 'COCO128 (Quick, 128 images)' },
-  { value: 'coco',    label: 'COCO val2017 (Full, 5K images)' },
+  { value: 'visdrone', label: '🚁 VisDrone2019-DET Val (548 images)', group: 'VisDrone' },
+  { value: 'coco128',  label: '⚡ COCO128 (Quick, 128 images)',        group: 'COCO' },
+  { value: 'coco',     label: '📦 COCO val2017 (Full, 5K images)',     group: 'COCO' },
 ]
+
+// Compatibility rules
+// visdrone dataset → only yolov8s_visdrone_best makes sense
+// coco datasets    → only yolov8n / yolov8s make sense
+const INCOMPATIBLE = (model, dataset) =>
+  (model === 'yolov8s_visdrone_best' && (dataset === 'coco128' || dataset === 'coco')) ||
+  (model !== 'yolov8s_visdrone_best' && dataset === 'visdrone')
+
+const PERFECT_MATCH = (model, dataset) =>
+  model === 'yolov8s_visdrone_best' && dataset === 'visdrone'
 
 const EVAL_MODELS = [
   // ── Your fine-tuned VisDrone model ──────────────────────────────
@@ -25,7 +36,7 @@ const STATUS_COLOR = {
 }
 
 export default function Evaluate() {
-  const [dataset, setDataset] = useState('coco128')
+  const [dataset, setDataset] = useState('visdrone')
   const [model, setModel] = useState('yolov8s_visdrone_best')
   const [runs, setRuns] = useState([])
   const [selectedRun, setSelectedRun] = useState(null)
@@ -68,13 +79,12 @@ export default function Evaluate() {
   }, [polling])
 
   const handleRun = async () => {
-    // Guard: VisDrone model cannot be evaluated on COCO — different class sets
-    if (model === 'yolov8s_visdrone_best' && (dataset === 'coco128' || dataset === 'coco')) {
-      toast.error(
-        'Dataset mismatch: The VisDrone model (10 aerial classes) cannot be evaluated on COCO (80 different classes). ' +
-        'Switch to a COCO pretrained model, or the results will be meaningless.',
-        { duration: 7000 }
-      )
+    // Guard: block incompatible model/dataset combinations
+    if (INCOMPATIBLE(model, dataset)) {
+      const msg = model === 'yolov8s_visdrone_best'
+        ? 'Dataset mismatch: The VisDrone model (10 aerial classes) cannot be evaluated on COCO (80 different classes). Select VisDrone dataset instead.'
+        : 'Dataset mismatch: A COCO pretrained model cannot be meaningfully evaluated on VisDrone (10 different aerial classes). Select YOLOv8s VisDrone — Best, or switch to a COCO dataset.'
+      toast.error(msg, { duration: 7000 })
       return
     }
     setLoading(true)
@@ -119,8 +129,18 @@ export default function Evaluate() {
                 onChange={(e) => setDataset(e.target.value)}
                 className="w-full bg-gray-800 border border-gray-700 text-sm text-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-500"
               >
-                {DATASETS.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}
+                <optgroup label="── VisDrone (Aerial Traffic)">
+                  {DATASETS.filter(d => d.group === 'VisDrone').map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}
+                </optgroup>
+                <optgroup label="── COCO (General Object Detection)">
+                  {DATASETS.filter(d => d.group === 'COCO').map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}
+                </optgroup>
               </select>
+              {dataset === 'visdrone' && (
+                <p className="text-xs text-sky-400 mt-1">
+                  ℹ️ First run auto-downloads VisDrone2019-DET val split (~78 MB). Takes ~2–3 min on first run.
+                </p>
+              )}
             </div>
 
             <div>
@@ -142,17 +162,24 @@ export default function Evaluate() {
                 </optgroup>
               </select>
 
-              {/* Dataset/model compatibility warning */}
-              {model === 'yolov8s_visdrone_best' && (dataset === 'coco128' || dataset === 'coco') && (
-                <div className="mt-2 bg-red-900/30 border border-red-600/50 rounded-lg px-3 py-2 text-xs text-red-300">
-                  ⚠️ <strong>Incompatible combination.</strong> The VisDrone model was trained on 10 aerial traffic classes.
-                  COCO has 80 different classes. Evaluating across mismatched datasets produces scientifically invalid metrics
-                  (100% P/R/F1 is a known symptom of this bug). Switch to a COCO model for COCO datasets.
+              {/* Dataset/model compatibility banner — 3 states */}
+              {PERFECT_MATCH(model, dataset) && (
+                <div className="mt-2 bg-green-900/30 border border-green-600/50 rounded-lg px-3 py-2 text-xs text-green-300">
+                  ✅ <strong>Perfect match.</strong> YOLOv8s VisDrone Best evaluated on its own val split.
+                  Expected: mAP≈56%, P≈64%, R≈53% — these are your published training numbers.
                 </div>
               )}
-              {model !== 'yolov8s_visdrone_best' && (
+              {INCOMPATIBLE(model, dataset) && (
+                <div className="mt-2 bg-red-900/30 border border-red-600/50 rounded-lg px-3 py-2 text-xs text-red-300">
+                  ⚠️ <strong>Incompatible combination.</strong>{' '}
+                  {model === 'yolov8s_visdrone_best'
+                    ? 'The VisDrone model was trained on 10 aerial traffic classes. COCO has 80 different classes. Evaluating across mismatched datasets produces scientifically invalid metrics (100% P/R/F1 is a known symptom of this bug). Switch to a COCO model for COCO datasets.'
+                    : 'A COCO pretrained model cannot be meaningfully evaluated on VisDrone — class label spaces don\'t match. Switch to YOLOv8s VisDrone — Best, or choose a COCO dataset.'}
+                </div>
+              )}
+              {!PERFECT_MATCH(model, dataset) && !INCOMPATIBLE(model, dataset) && model !== 'yolov8s_visdrone_best' && (
                 <p className="text-xs text-gray-600 mt-1">
-                  💡 For your best model (56.01% mAP), select <span className="text-indigo-400">YOLOv8s VisDrone — Best</span>
+                  💡 For your best model (56.01% mAP), select <span className="text-indigo-400">YOLOv8s VisDrone — Best</span> + <span className="text-indigo-400">VisDrone dataset</span>
                 </p>
               )}
             </div>

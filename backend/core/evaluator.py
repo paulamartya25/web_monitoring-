@@ -65,13 +65,23 @@ class ModelEvaluator:
         # ── Enforce dataset/model compatibility ────────────────────────
         # VisDrone model → VisDrone dataset only
         # COCO models    → COCO datasets only
-        VISDRONE_MODEL = model_size == "yolov8s_visdrone_best"
-        if VISDRONE_MODEL and dataset_name in ("coco128", "coco"):
+        VISDRONE_MODEL   = model_size == "yolov8s_visdrone_best"
+        VISDRONE_DATASET = dataset_name == "visdrone"
+        COCO_DATASET     = dataset_name in ("coco128", "coco")
+
+        if VISDRONE_MODEL and COCO_DATASET:
             raise ValueError(
                 "Dataset mismatch: 'yolov8s_visdrone_best' was trained on VisDrone "
                 "(10 aerial classes) and cannot be evaluated on COCO (80 classes). "
-                "The result would be meaningless. Use dataset='VisDrone' instead, "
+                "The result would be meaningless. Use dataset='visdrone' instead, "
                 "or select a COCO pretrained model (yolov8n / yolov8s)."
+            )
+        if not VISDRONE_MODEL and VISDRONE_DATASET:
+            raise ValueError(
+                "Dataset mismatch: VisDrone dataset uses 10 aerial traffic classes "
+                f"but '{model_size}' is a COCO pretrained model (80 different classes). "
+                "Select 'yolov8s_visdrone_best' to evaluate on VisDrone, "
+                "or switch to a COCO dataset (coco128 / coco)."
             )
 
         logger.info(f"Loading model: {model_path}")
@@ -82,7 +92,7 @@ class ModelEvaluator:
         # ── Determine data YAML ────────────────────────────────────────
         if data_yaml:
             resolved_yaml = data_yaml
-        elif VISDRONE_MODEL:
+        elif VISDRONE_DATASET or VISDRONE_MODEL:
             resolved_yaml = "VisDrone.yaml"   # bundled with ultralytics
         else:
             resolved_yaml = f"{dataset_name}.yaml"
