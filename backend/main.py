@@ -14,6 +14,7 @@ from core.tracker import CentroidTracker
 from core.traffic_analyzer import TrafficActivityDescriptor
 from core.zone_config import VehicleCounter, ZoneMonitor, TrafficStats
 from core.anomaly_detector import AnomalyDetector
+from core.homography_calibrator import HomographyCalibrator
 from db.database import init_db
 
 logging.basicConfig(
@@ -43,6 +44,7 @@ async def lifespan(app: FastAPI):
     app.state.zone_monitor = ZoneMonitor(zones=[])      # polygon zone alerts
     app.state.traffic_stats = TrafficStats()
     app.state.anomaly     = AnomalyDetector()           # Tier 1: rule-based anomaly detection
+    app.state.calibrator  = HomographyCalibrator()      # Tier 1: homography speed calibration
 
     device = "CUDA (GPU)" if torch.cuda.is_available() else "CPU"
     logger.info(f"YOLOv8 loaded on {device} | Model: {settings.MODEL_SIZE}")
@@ -102,10 +104,12 @@ app.mount("/reports", StaticFiles(directory=settings.REPORTS_DIR), name="reports
 from routers.detect import router as detect_router      # noqa: E402
 from routers.stream import router as stream_router      # noqa: E402
 from routers.evaluate import router as evaluate_router  # noqa: E402
+from routers.calibrate import router as calibrate_router  # noqa: E402
 
 app.include_router(detect_router)
 app.include_router(stream_router)
 app.include_router(evaluate_router)
+app.include_router(calibrate_router)
 
 
 # ── Health check ──────────────────────────────────────────────────────────────

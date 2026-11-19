@@ -12,6 +12,7 @@ export default defineConfig({
       '/reports': 'http://localhost:8000',
       '/health': 'http://localhost:8000',
       '/model': 'http://localhost:8000',
+      '/calibrate': 'http://localhost:8000',
       '/ws': {
         target: 'ws://localhost:8000',
         ws: true,

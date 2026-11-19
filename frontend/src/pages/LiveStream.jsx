@@ -39,6 +39,53 @@ export default function LiveStream() {
   const [anomalyEvents, setAnomalyEvents] = useState([])
   const [trafficSummary, setTrafficSummary] = useState(null)
 
+  // ── Speed Calibration state ────────────────────────────────────────
+  const [showCalib, setShowCalib]         = useState(false)
+  const [calibStatus, setCalibStatus]     = useState(null)   // {calibrated, mode, scale_m_per_px}
+  const [refMetres, setRefMetres]         = useState('')
+  const [refPixels, setRefPixels]         = useState('')
+  const [calibLoading, setCalibLoading]   = useState(false)
+
+  // Fetch calibration status from backend
+  const fetchCalibStatus = useCallback(async () => {
+    try {
+      const r = await fetch(`${API_BASE}/calibrate/status`)
+      if (r.ok) setCalibStatus(await r.json())
+    } catch (_) {}
+  }, [])
+
+  useEffect(() => { fetchCalibStatus() }, [fetchCalibStatus])
+
+  const handleCalibSubmit = async (e) => {
+    e.preventDefault()
+    const px = parseFloat(refPixels)
+    const m  = parseFloat(refMetres)
+    if (!px || !m || px <= 0 || m <= 0) { toast.error('Enter valid positive values'); return }
+    setCalibLoading(true)
+    try {
+      const r = await fetch(`${API_BASE}/calibrate/simple`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pixels: px, real_metres: m }),
+      })
+      if (r.ok) {
+        const data = await r.json()
+        setCalibStatus(data)
+        toast.success(`✅ Calibrated: ${(m/px).toFixed(4)} m/px`)
+      } else {
+        const err = await r.json()
+        toast.error(err.detail || 'Calibration failed')
+      }
+    } catch (_) { toast.error('Could not reach backend') }
+    finally { setCalibLoading(false) }
+  }
+
+  const handleCalibReset = async () => {
+    await fetch(`${API_BASE}/calibrate/reset`, { method: 'DELETE' })
+    setCalibStatus(null)
+    toast('Calibration cleared', { icon: '🔄' })
+  }
+
   // Camera mode — aerial models work best with drone/overhead cameras
   const AERIAL_MODELS = new Set(['yolov8s_visdrone_best', 'best_1280', 'best_640'])
   const isAerialModel = AERIAL_MODELS.has(model)
@@ -172,6 +219,82 @@ export default function LiveStream() {
           ))}
         </div>
       )}
+
+      {/* ── Speed Calibration Panel ───────────────────────────────── */}
+      <div className="mb-4 rounded-xl border border-gray-700 bg-gray-900/60 overflow-hidden">
+        <button
+          onClick={() => setShowCalib(v => !v)}
+          className="w-full flex items-center justify-between px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-gray-800/50 transition-colors"
+        >
+          <span className="flex items-center gap-2">
+            <span>⚙️</span>
+            <span className="font-medium">Speed Calibration</span>
+            {calibStatus?.calibrated
+              ? <span className="ml-2 text-xs bg-emerald-700/50 text-emerald-300 border border-emerald-600/40 px-2 py-0.5 rounded-full">
+                  🎯 {calibStatus.mode} · {Number(calibStatus.scale_m_per_px).toFixed(4)} m/px
+                </span>
+              : <span className="ml-2 text-xs bg-yellow-700/30 text-yellow-400 border border-yellow-600/30 px-2 py-0.5 rounded-full">
+                  ⚠️ Uncalibrated
+                </span>
+            }
+          </span>
+          <span className="text-gray-600">{showCalib ? '▲' : '▼'}</span>
+        </button>
+
+        {showCalib && (
+          <div className="px-4 pb-4 pt-2 border-t border-gray-800 space-y-3">
+            <p className="text-xs text-gray-500">
+              Enter one known real-world measurement to convert pixel distances to km/h.
+              Measure a fixed feature (lane width, road marking) in pixels from the video.
+            </p>
+
+            {/* Preset buttons */}
+            <div className="flex gap-2 flex-wrap">
+              {[
+                { label: 'Drone ~50 m alt', px: 74, m: 3.5 },
+                { label: 'Drone ~100 m alt', px: 37, m: 3.5 },
+                { label: 'CCTV ~10 m alt', px: 350, m: 3.5 },
+              ].map(p => (
+                <button key={p.label}
+                  onClick={() => { setRefPixels(String(p.px)); setRefMetres(String(p.m)) }}
+                  className="text-xs px-2 py-1 rounded-lg bg-indigo-800/40 text-indigo-300 border border-indigo-600/40 hover:bg-indigo-700/50 transition-colors"
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+
+            <form onSubmit={handleCalibSubmit} className="flex flex-wrap gap-2 items-end">
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-gray-500">Reference length (pixels)</label>
+                <input
+                  type="number" min="1" step="any" placeholder="e.g. 140"
+                  value={refPixels} onChange={e => setRefPixels(e.target.value)}
+                  className="w-36 bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-gray-500">Real-world length (metres)</label>
+                <input
+                  type="number" min="0.01" step="any" placeholder="e.g. 3.5"
+                  value={refMetres} onChange={e => setRefMetres(e.target.value)}
+                  className="w-36 bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+              <button type="submit" disabled={calibLoading}
+                className="px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm font-medium transition-colors">
+                {calibLoading ? 'Applying…' : 'Apply'}
+              </button>
+              {calibStatus?.calibrated && (
+                <button type="button" onClick={handleCalibReset}
+                  className="px-4 py-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm transition-colors">
+                  Reset
+                </button>
+              )}
+            </form>
+          </div>
+        )}
+      </div>
 
       {/* Zone Alerts Banner */}
       {zoneAlerts.length > 0 && (
@@ -323,9 +446,15 @@ export default function LiveStream() {
                     {det.estimated_speed_kmh > 0 && (
                       <span
                         className={`text-xs font-mono ${speedColor(det.estimated_speed_kmh)}`}
-                        title="Relative motion intensity (pixel displacement). Not a calibrated speed — true speed requires camera calibration."
+                        title={det.speed_calibrated
+                          ? 'Calibrated real-world speed (homography scale applied)'
+                          : 'Uncalibrated estimate — set up Speed Calibration for accurate km/h'}
                       >
-                        ~{det.estimated_speed_kmh} <span className="text-gray-500">km/h*</span>
+                        {det.speed_calibrated ? '' : '~'}{det.estimated_speed_kmh}{' '}
+                        <span className="text-gray-500">km/h</span>
+                        {det.speed_calibrated
+                          ? <span className="ml-1 text-emerald-400" title="Calibrated">📐</span>
+                          : <span className="text-gray-600">*</span>}
                       </span>
                     )}
                   </div>

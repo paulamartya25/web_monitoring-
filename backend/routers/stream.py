@@ -7,6 +7,7 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect, WebSocketExceptio
 from fastapi.websockets import WebSocketState
 
 from utils.drawing import draw_detections, encode_image_to_base64, decode_base64_to_image
+from core.homography_calibrator import apply_calibrated_speeds
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["stream"])
@@ -30,6 +31,7 @@ async def stream_websocket(websocket: WebSocket):
     zone_monitor  = websocket.app.state.zone_monitor
     traffic_stats = websocket.app.state.traffic_stats
     anomaly_det   = websocket.app.state.anomaly
+    calibrator    = websocket.app.state.calibrator
 
     # Reset ALL state for fresh stream session
     detector.reset_tracker()           # ByteTrack: clear previous track IDs
@@ -38,10 +40,15 @@ async def stream_websocket(websocket: WebSocket):
     zone_monitor.reset() if hasattr(zone_monitor, "reset") else None
     traffic_stats.reset()
     anomaly_det.reset()
+    # NOTE: calibrator is NOT reset per-session — user calibration persists
+
+    # centroid_history tracks per-object pixel positions for calibrated speed
+    centroid_history: dict[int, list] = {}
 
     logger.info("WebSocket stream connected — ByteTrack + all stats reset")
     last_frame_time = 0.0
     frame_count = 0
+    fps = 10.0            # seed value used by calibrator on first frame
     fps_window: list[float] = []
 
     try:
@@ -72,6 +79,8 @@ async def stream_websocket(websocket: WebSocket):
             # so the old CentroidTracker step is no longer needed here.
             result     = detector.detect_and_track(frame)
             described  = activity_desc.describe(result["detections"])
+            # Apply calibrated real-world speeds if calibrator is set up
+            described  = apply_calibrated_speeds(described, calibrator, fps or 10.0, centroid_history)
             anomalies  = anomaly_det.detect(described)
             vehicle_counts = counter.update(described)
             zone_alerts    = zone_monitor.check(described)
