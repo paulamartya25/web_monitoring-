@@ -74,7 +74,7 @@ Aerial footage contains many small, distant objects that a standard single-pass 
 | Method | mAP@0.5 | Recall | Time per image |
 | --- | --- | --- | --- |
 | Standard inference (1280 px) | 56.01% | 53.18% | ~33 ms (~30 FPS) |
-| With SAHI (512 px tiles) | not yet measured on full val set | — | ~85 ms (~12 FPS) |
+| With SAHI (512 px tiles) | not measured on full val set (GPU required for 548-image run) | — | ~85 ms (~12 FPS) |
 
 **Key findings:**
 
@@ -203,17 +203,31 @@ Open the repo in Codespaces, wait for setup, run `docker-compose up`, then open 
 
 - **Live webcam:** open `/live`, click Start Detection, and allow camera access.
 - **Upload:** open `/upload`, drop in an image or video, set the confidence threshold, and click Detect Objects.
-- **Evaluation:**
+- **Evaluation (web UI):** open `/evaluate`, choose a **compatible** model–dataset pair, and click *Run Evaluation*. Results (mAP, Precision, Recall, F1, Confusion Matrix, ROC-AUC, PR Curve) load automatically when done.
+
+  > **Important — model/dataset compatibility:**
+  > The VisDrone fine-tuned model (`YOLOv8s VisDrone — Best`) uses 10 aerial traffic classes and must only be evaluated against a VisDrone-format dataset. COCO pretrained models (`YOLOv8n`, `YOLOv8s`) are for COCO datasets. The system **blocks** mismatched combinations with a clear error — evaluating across incompatible class spaces produces meaningless metrics (a known symptom is 100% P/R/F1 when `y_true` is set equal to `y_pred`; this bug was identified and fixed in commit `22c27a0`).
+
+  Validated results for the fine-tuned model (VisDrone2019-DET **validation split**, commit `6b40be6`):
+
+  | Metric | Value |
+  | --- | --- |
+  | mAP@0.5 | 56.01% |
+  | mAP@0.5:0.95 | 32.47% |
+  | Precision | 64.10% |
+  | Recall | 53.18% |
+  | F1 | 58.13% |
+
+  Full per-class breakdown and 6 evaluation charts are in `docs/metrics/`.
+
+- **Evaluation (CLI):**
 
 ```bash
-# Quick test on 128 COCO images (downloaded automatically)
-python evaluation/run_eval.py --dataset coco128
+# Quick baseline on COCO128 (downloads ~26 MB, runs in ~2 min on CPU)
+python evaluation/run_eval.py --dataset coco128 --model yolov8n
 
 # Custom dataset
 python evaluation/run_eval.py --dataset custom --data-path ./evaluation/datasets/my_data/data.yaml
-
-# Choose a model size
-python evaluation/run_eval.py --dataset coco128 --model yolov8s
 ```
 
 - **Ablation study:**
@@ -258,7 +272,7 @@ web_monitoring-/
 │   └── utils/                   # Drawing and video helpers
 ├── frontend/
 │   └── src/                     # Pages (Live, Upload, Evaluate, Dashboard) and components
-├── training/                    # [describe: fine-tuning code and configs]
+├── training/                    # Fine-tuning scripts, Kaggle notebook, YOLOv8s config (81 epochs, 1280 px)
 ├── experiments/
 │   ├── ablation_study.py        # Ablation experiments
 │   ├── ablation_results.csv     # Ablation results
