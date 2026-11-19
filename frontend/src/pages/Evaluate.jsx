@@ -3,11 +3,16 @@ import axios from 'axios'
 import toast from 'react-hot-toast'
 import { PlayCircle, Loader2, RefreshCw } from 'lucide-react'
 import MetricsCard from '../components/MetricsCard'
-import ModelSelector from '../components/ModelSelector'
 
 const DATASETS = [
   { value: 'coco128', label: 'COCO128 (Quick, 128 images)' },
   { value: 'coco',    label: 'COCO val2017 (Full, 5K images)' },
+]
+
+const EVAL_MODELS = [
+  { value: 'yolov8n', label: '⚡ YOLOv8n — Nano (Fastest)'  },
+  { value: 'yolov8s', label: '⚖️ YOLOv8s — Small (Balanced)' },
+  { value: 'yolov8m', label: '🎯 YOLOv8m — Medium (Accurate)'},
 ]
 
 const STATUS_COLOR = {
@@ -109,7 +114,13 @@ export default function Evaluate() {
 
             <div>
               <label className="text-xs text-gray-400 uppercase tracking-widest mb-1 block">Model</label>
-              <ModelSelector value={model} onChange={setModel} />
+              <select
+                value={model}
+                onChange={(e) => setModel(e.target.value)}
+                className="w-full bg-gray-800 border border-gray-700 text-sm text-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-500"
+              >
+                {EVAL_MODELS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
+              </select>
             </div>
 
             <button

@@ -155,12 +155,10 @@ export default function LiveStream() {
 
       {/* Traffic summary stats bar */}
       {trafficSummary && (
-        <div className="grid grid-cols-5 gap-3 mb-4">
+        <div className="grid grid-cols-3 gap-3 mb-4">
           {[
             { label: 'Vehicles Counted', value: Object.values(vehicleCounts).reduce((a,b)=>a+b,0), icon: '🚗' },
             { label: 'Objects on Road', value: trafficSummary.total_objects, icon: '📍' },
-            { label: 'Avg Speed', value: `${trafficSummary.avg_speed_kmh} km/h`, icon: '⚡' },
-            { label: 'Max Speed', value: `${trafficSummary.max_speed_kmh} km/h`, icon: '🚨' },
             { label: 'Alerts', value: trafficSummary.alert_count, icon: '⚠️' },
           ].map(({ label, value, icon }) => (
             <div key={label} className="bg-gray-900 border border-gray-800 rounded-xl p-3 text-center">
