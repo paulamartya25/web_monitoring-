@@ -75,7 +75,7 @@ async def start_evaluation(
     db: AsyncSession = Depends(get_db),
 ):
     """Kick off a dataset evaluation run (runs in background)."""
-    allowed_models = {"yolov8n", "yolov8s", "yolov8m", "yolov8l", "yolov8x"}
+    allowed_models = {"yolov8n", "yolov8s", "yolov8s_visdrone_best"}
     if model_size not in allowed_models:
         raise HTTPException(status_code=400, detail=f"Invalid model. Choose from: {allowed_models}")
 

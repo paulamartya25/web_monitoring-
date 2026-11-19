@@ -51,7 +51,13 @@ class ModelEvaluator:
             output_dir = os.path.join(settings.REPORTS_DIR, f"eval_{timestamp}")
         Path(output_dir).mkdir(parents=True, exist_ok=True)
 
-        model = YOLO(f"{model_size}.pt")
+        # Resolve model path — custom fine-tuned models live in models/
+        CUSTOM_MODELS = {
+            "yolov8s_visdrone_best": os.path.join(settings.MODELS_DIR, "yolov8s_visdrone_best.pt"),
+        }
+        model_path = CUSTOM_MODELS.get(model_size, f"{model_size}.pt")
+        logger.info(f"Loading model: {model_path}")
+        model = YOLO(model_path)
 
         # ── Official mAP via ultralytics ──────────────────────────────
         if data_yaml:

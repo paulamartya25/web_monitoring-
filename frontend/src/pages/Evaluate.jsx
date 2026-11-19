@@ -10,9 +10,11 @@ const DATASETS = [
 ]
 
 const EVAL_MODELS = [
-  { value: 'yolov8n', label: '⚡ YOLOv8n — Nano (Fastest)'  },
-  { value: 'yolov8s', label: '⚖️ YOLOv8s — Small (Balanced)' },
-  { value: 'yolov8m', label: '🎯 YOLOv8m — Medium (Accurate)'},
+  // ── Your fine-tuned VisDrone model ──────────────────────────────
+  { value: 'yolov8s_visdrone_best', label: '🏆 YOLOv8s VisDrone — Best (56.01% mAP, 1280px)', group: 'Fine-Tuned' },
+  // ── Generic COCO pretrained baselines (for comparison) ──────────
+  { value: 'yolov8n', label: '⚡ YOLOv8n — Nano (COCO pretrained)',    group: 'COCO Baseline' },
+  { value: 'yolov8s', label: '⚖️ YOLOv8s — Small (COCO pretrained)',   group: 'COCO Baseline' },
 ]
 
 const STATUS_COLOR = {
@@ -24,7 +26,7 @@ const STATUS_COLOR = {
 
 export default function Evaluate() {
   const [dataset, setDataset] = useState('coco128')
-  const [model, setModel] = useState('yolov8n')
+  const [model, setModel] = useState('yolov8s_visdrone_best')
   const [runs, setRuns] = useState([])
   const [selectedRun, setSelectedRun] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -119,7 +121,16 @@ export default function Evaluate() {
                 onChange={(e) => setModel(e.target.value)}
                 className="w-full bg-gray-800 border border-gray-700 text-sm text-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-500"
               >
-                {EVAL_MODELS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
+                <optgroup label="── Fine-Tuned (VisDrone)">
+                  {EVAL_MODELS.filter(m => m.group === 'Fine-Tuned').map((m) =>
+                    <option key={m.value} value={m.value}>{m.label}</option>
+                  )}
+                </optgroup>
+                <optgroup label="── COCO Pretrained Baselines">
+                  {EVAL_MODELS.filter(m => m.group === 'COCO Baseline').map((m) =>
+                    <option key={m.value} value={m.value}>{m.label}</option>
+                  )}
+                </optgroup>
               </select>
             </div>
 
