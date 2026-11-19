@@ -79,6 +79,21 @@ async def start_evaluation(
     if model_size not in allowed_models:
         raise HTTPException(status_code=400, detail=f"Invalid model. Choose from: {allowed_models}")
 
+    # ── Dataset / model compatibility check ───────────────────────────
+    # The VisDrone model has 10 aerial classes; COCO has 80 different classes.
+    # Evaluating across incompatible datasets gives meaningless metrics.
+    if model_size == "yolov8s_visdrone_best" and dataset_name in ("coco128", "coco"):
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Dataset mismatch: 'YOLOv8s VisDrone Best' was trained on VisDrone "
+                "(10 aerial traffic classes) and cannot be meaningfully evaluated on "
+                "COCO (80 different classes). "
+                "Please select a COCO pretrained model (YOLOv8n or YOLOv8s) for COCO datasets, "
+                "or the evaluation will produce scientifically invalid results."
+            )
+        )
+
     # Create pending DB record
     run = EvaluationRun(
         dataset_name=dataset_name,

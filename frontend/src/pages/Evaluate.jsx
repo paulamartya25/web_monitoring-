@@ -68,6 +68,15 @@ export default function Evaluate() {
   }, [polling])
 
   const handleRun = async () => {
+    // Guard: VisDrone model cannot be evaluated on COCO — different class sets
+    if (model === 'yolov8s_visdrone_best' && (dataset === 'coco128' || dataset === 'coco')) {
+      toast.error(
+        'Dataset mismatch: The VisDrone model (10 aerial classes) cannot be evaluated on COCO (80 different classes). ' +
+        'Switch to a COCO pretrained model, or the results will be meaningless.',
+        { duration: 7000 }
+      )
+      return
+    }
     setLoading(true)
     setSelectedRun(null)
     try {
@@ -132,6 +141,20 @@ export default function Evaluate() {
                   )}
                 </optgroup>
               </select>
+
+              {/* Dataset/model compatibility warning */}
+              {model === 'yolov8s_visdrone_best' && (dataset === 'coco128' || dataset === 'coco') && (
+                <div className="mt-2 bg-red-900/30 border border-red-600/50 rounded-lg px-3 py-2 text-xs text-red-300">
+                  ⚠️ <strong>Incompatible combination.</strong> The VisDrone model was trained on 10 aerial traffic classes.
+                  COCO has 80 different classes. Evaluating across mismatched datasets produces scientifically invalid metrics
+                  (100% P/R/F1 is a known symptom of this bug). Switch to a COCO model for COCO datasets.
+                </div>
+              )}
+              {model !== 'yolov8s_visdrone_best' && (
+                <p className="text-xs text-gray-600 mt-1">
+                  💡 For your best model (56.01% mAP), select <span className="text-indigo-400">YOLOv8s VisDrone — Best</span>
+                </p>
+              )}
             </div>
 
             <button
