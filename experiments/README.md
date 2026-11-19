@@ -55,7 +55,7 @@ Improvement:         +48% more detections at -60% FPS cost
 
 ---
 
-## For Your MTech Report — Table Template
+
 
 | Method | mAP@0.5 | Precision | Recall | F1 | FPS |
 |---|---|---|---|---|---|
