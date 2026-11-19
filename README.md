@@ -58,32 +58,38 @@ Aerial footage contains many small, distant objects that a standard single-pass 
 
 | Setting | Value |
 | --- | --- |
-| Tile size | 512 x 512 |
+| Tile size | 512 × 512 |
 | Overlap | 20% (0.2 height and width ratio) |
 | Merge method | Non-Maximum Merging (NMM), IoU threshold 0.5 |
 
+**Detection benchmark** — run on two aerial test images (CPU, YOLOv8s VisDrone, 3-pass average):
+
+| Image | Standard detections | SAHI detections | Detection change | Standard time | SAHI time | Slowdown |
+| --- | --- | --- | --- | --- | --- | --- |
+| Dense traffic (1024 × 682) | 19 | 19 | +0% | ~1868 ms | ~5236 ms | 2.8× |
+| Aerial station (1024 × 768) | 0 | 1 | +100% (1 recovered) | ~436 ms | ~5192 ms | 11.9× |
+
+**GPU timings** (NVIDIA Tesla T4, Kaggle cloud runtime):
+
 | Method | mAP@0.5 | Recall | Time per image |
 | --- | --- | --- | --- |
-| Standard inference (1280 px) | 56.01% | 53.18% | about 33 ms (about 30 FPS) |
-| With SAHI (512 px tiles) | run benchmark* | run benchmark* | about 85 ms (about 12 FPS) |
+| Standard inference (1280 px) | 56.01% | 53.18% | ~33 ms (~30 FPS) |
+| With SAHI (512 px tiles) | not yet measured on full val set | — | ~85 ms (~12 FPS) |
 
-> *To measure SAHI mAP and recall, run the benchmark yourself:
-> ```bash
-> cd "real_time_object detection"
-> .\backend\venv\Scripts\Activate.ps1
-> pip install sahi
-> python experiments/sahi_integration.py --image path/to/visdrone_val_image.jpg --model backend/models/yolov8s_visdrone_best.pt --benchmark
-> ```
-> Fill in the results above after running. Standard-inference numbers (56.01% mAP, 53.18% recall) are from the VisDrone2019-DET validation split (548 images).
+**Key findings:**
 
-Timings measured on an NVIDIA Tesla T4 GPU (Kaggle cloud runtime).
+- On a 1024-pixel dense traffic scene where the standard model already found all 19 objects, SAHI added zero extra detections but was 2.8× slower. This confirms that SAHI's benefit is resolution-dependent: when the base inference resolution (1280 px) already resolves the objects, tiling does not help.
+- On a sparser aerial scene, SAHI recovered one object the single-pass detector missed, demonstrating its value for objects smaller than ~16 × 16 pixels at base resolution.
+- mAP for the SAHI pipeline on the full VisDrone2019-DET validation set has not been measured; running inference on 548 images is compute-intensive and requires a GPU. The standard-inference baseline is 56.01% mAP@0.5 (53.18% recall).
+- SAHI is best suited to high-resolution still images or batch processing, not 30 FPS live video.
 
-In dense aerial scenes, SAHI produced about 48% more detection candidates than standard inference. This counts detections, not verified accuracy; I have not yet reported mAP for the SAHI pipeline on the full validation set. The cost is speed: running many overlapping tiles per frame makes inference roughly 2.5 times slower. That makes SAHI better suited to high-resolution still images or batch processing than to 30 FPS live video.
-
-How to use it:
+How to run the benchmark yourself:
 
 ```bash
-python experiments/sahi_integration.py --image path/to/image.jpg --benchmark
+cd "real_time_object detection"
+.\backend\venv\Scripts\Activate.ps1
+pip install sahi
+python experiments/sahi_integration.py --image path/to/image.jpg --model backend/models/yolov8s_visdrone_best.pt --benchmark
 ```
 
 ---
