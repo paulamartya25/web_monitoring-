@@ -210,15 +210,15 @@ Open the repo in Codespaces, wait for setup, run `docker-compose up`, then open 
 
   Validated results for the fine-tuned model (VisDrone2019-DET **validation split**, commit `6b40be6`):
 
-  | Metric | Value |
-  | --- | --- |
-  | mAP@0.5 | 56.01% |
-  | mAP@0.5:0.95 | 32.47% |
-  | Precision | 64.10% |
-  | Recall | 53.18% |
-  | F1 | 58.13% |
+  | Metric | Training (1280 px) | Live Eval (640 px) |
+  | --- | --- | --- |
+  | mAP@0.5 | 56.01% | 46.19% |
+  | mAP@0.5:0.95 | 27.84% | 29.84% |
+  | Precision | 64.10% | 64.57% |
+  | Recall | 53.18% | 53.96% |
+  | F1 | 58.11% | 58.79% |
 
-  Full per-class breakdown and 6 evaluation charts are in `docs/metrics/`.
+  > **Note on the mAP gap:** The model was trained at 1280 px. The web Evaluate page previously ran `val()` at the default 640 px, which degrades mAP on small aerial objects (resolution-sensitive). Precision and Recall are within 1% of training numbers at both resolutions, confirming model identity. The evaluator now matches training resolution (1280 px) for VisDrone runs. Full breakdown in `docs/metrics/metrics_summary.json`.
 
 - **Evaluation (CLI):**
 

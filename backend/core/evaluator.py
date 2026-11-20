@@ -99,6 +99,13 @@ class ModelEvaluator:
 
         logger.info(f"Val dataset: {resolved_yaml}")
 
+        # ── Resolve image size ─────────────────────────────────────────
+        # The VisDrone model was trained at 1280 px. Running val() at the
+        # default 640 px degrades mAP significantly on small aerial objects
+        # (measured: 46.2% @ 640px vs 56.0% @ 1280px) while P/R stay close.
+        # We match training conditions so web-UI metrics align with published numbers.
+        imgsz = 1280 if VISDRONE_MODEL else 640
+
         # ── Official mAP + P/R via ultralytics val() ──────────────────
         # ultralytics val() computes true mAP, mean precision, and mean recall
         # correctly using IoU-matched predictions vs ground-truth boxes.
@@ -107,6 +114,7 @@ class ModelEvaluator:
             data=resolved_yaml,
             conf=conf,
             iou=iou,
+            imgsz=imgsz,
             verbose=False,
             plots=False,
         )
@@ -133,6 +141,7 @@ class ModelEvaluator:
             for r in model.val(
                 data=resolved_yaml,
                 conf=0.001, iou=iou,
+                imgsz=imgsz,
                 verbose=False, stream=True,
             ):
                 if r.boxes is not None and len(r.boxes):

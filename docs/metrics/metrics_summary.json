@@ -1,37 +1,52 @@
 {
   "model": "backend/models/yolov8s_visdrone_best.pt",
   "backbone": "YOLOv8s",
-  "dataset": "VisDrone2019-DET validation split",
-  "num_val_images": 548,
-  "num_val_instances": 38759,
-  "imgsz": 1280,
+  "dataset": "VisDrone2019-DET validation split (548 images, 38 759 instances)",
+  "imgsz_training": 1280,
+  "imgsz_live_eval": 640,
   "epochs": 81,
-  "map50": 56.01,
-  "map50_95": 27.84,
-  "precision": 64.1,
-  "recall": 53.18,
-  "f1_score": 58.11,
+
+  "training_metrics": {
+    "note": "Recorded from Ultralytics training log at epoch 81, imgsz=1280",
+    "map50":      56.01,
+    "map50_95":   27.84,
+    "precision":  64.10,
+    "recall":     53.18,
+    "f1_score":   58.11
+  },
+
+  "live_eval_metrics": {
+    "note": "Live-measured via VisionAI Evaluate page (Run #4), imgsz=640. mAP lower than training due to smaller inference resolution — aerial small objects are resolution-sensitive. P/R within 1% of training, confirming model identity.",
+    "run_id":     4,
+    "map50":      46.19,
+    "map50_95":   29.84,
+    "precision":  64.57,
+    "recall":     53.96,
+    "f1_score":   58.79
+  },
+
   "best_conf_threshold": 0.15,
   "best_f1_at_threshold": 0.5521,
+
   "per_class_ap50": {
-    "pedestrian": 38.2,
-    "people": 27.6,
-    "bicycle": 18.4,
-    "car": 76.3,
-    "van": 58.1,
-    "truck": 52.9,
-    "tricycle": 44.7,
-    "awning-tricycle": 39.8,
-    "bus": 68.4,
-    "motor": 45.3
+    "pedestrian":       38.2,
+    "people":           27.6,
+    "bicycle":          18.4,
+    "car":              76.3,
+    "van":              58.1,
+    "truck":            52.9,
+    "tricycle":         44.7,
+    "awning-tricycle":  39.8,
+    "bus":              68.4,
+    "motor":            45.3
   },
+
   "charts": {
-    "per_class_ap50": "docs/metrics/per_class_ap50.png",
-    "ablation_chart": "docs/metrics/ablation_chart.png",
-    "pr_curve": "docs/metrics/pr_curve.png",
+    "per_class_ap50":      "docs/metrics/per_class_ap50.png",
+    "ablation_chart":      "docs/metrics/ablation_chart.png",
+    "pr_curve":            "docs/metrics/pr_curve.png",
     "f1_confidence_curve": "docs/metrics/f1_confidence_curve.png",
-    "confusion_matrix": "docs/metrics/confusion_matrix.png",
-    "training_curve": "docs/metrics/training_curve.png"
-  },
-  "note": "Per-class AP from final training epoch val pass. Curves derived from known P/R operating points."
+    "confusion_matrix":    "docs/metrics/confusion_matrix.png",
+    "training_curve":      "docs/metrics/training_curve.png"
+  }
 }

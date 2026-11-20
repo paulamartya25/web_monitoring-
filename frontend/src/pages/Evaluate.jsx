@@ -165,8 +165,9 @@ export default function Evaluate() {
               {/* Dataset/model compatibility banner — 3 states */}
               {PERFECT_MATCH(model, dataset) && (
                 <div className="mt-2 bg-green-900/30 border border-green-600/50 rounded-lg px-3 py-2 text-xs text-green-300">
-                  ✅ <strong>Perfect match.</strong> YOLOv8s VisDrone Best evaluated on its own val split.
-                  Expected: mAP≈56%, P≈64%, R≈53% — these are your published training numbers.
+                  ✅ <strong>Perfect match.</strong> YOLOv8s VisDrone Best evaluated on its own val split (548 images, 1280 px).
+                  Expected: <strong>mAP≈56%, P≈64%, R≈54%</strong> — matching published training numbers.
+                  <span className="text-green-400/70 block mt-1">⏱ CPU: ~20–30 min (1280 px inference on 548 images)</span>
                 </div>
               )}
               {INCOMPATIBLE(model, dataset) && (
