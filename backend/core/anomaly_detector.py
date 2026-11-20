@@ -3,11 +3,12 @@ core/anomaly_detector.py
 ========================
 Rule-based anomaly detector for traffic surveillance.
 
-Detects four event types from tracked + described detections:
+Detects five event types from tracked + described detections:
   1. Sudden stop     — vehicle was moving, abruptly stopped
   2. Near-miss       — two moving tracked objects come within threshold distance
-  3. Crowd formation — unusual pedestrian density in a region
-  4. Abandoned obj   — any object stationary for > ABANDONED_SECONDS at 10 FPS
+  3. Crowd formation — unusual pedestrian density in a region (≥4 people, medium)
+  4. Crowd alarm     — curfew-level crowd (≥5 people clustered) → HIGH severity
+  5. Abandoned obj   — any object stationary for > ABANDONED_SECONDS at 10 FPS
 
 Each event carries: type, track_id, class_name, message, severity, bbox.
 Severity levels: "high" | "medium" | "low"
@@ -36,7 +37,8 @@ SUDDEN_STOP_CURR     = 3    # then stopped for this many frames
 NEAR_MISS_DIST_PX    = 35   # centroid distance (px) → near-miss
 NEAR_MISS_MIN_SPEED  = 6    # both objects must have displacement > this
 
-CROWD_MIN_PEOPLE     = 4    # min pedestrians in a cluster
+CROWD_MIN_PEOPLE     = 4    # min pedestrians → crowd_formation warning (medium)
+CROWD_ALARM_PEOPLE   = 5    # min pedestrians → crowd_alarm (high) — curfew trigger
 CROWD_RADIUS_PX      = 160  # cluster radius (px)
 
 ABANDONED_FRAMES     = 90   # ~9 s at 10 FPS → flag as abandoned
@@ -190,14 +192,25 @@ class AnomalyDetector:
                 y1 = int(cluster_pts[:, 1].min()) - 20
                 x2 = int(cluster_pts[:, 0].max()) + 20
                 y2 = int(cluster_pts[:, 1].max()) + 20
+                n = len(cluster_idx)
 
                 # Crowd cooldown keyed on cluster centroid (rounded)
                 ck = (int(c[0] // 100), int(c[1] // 100))
-                if not self._on_cooldown(ck, "crowd"):
+
+                # ── Crowd alarm (curfew): ≥5 people → HIGH severity ──────────
+                if n >= CROWD_ALARM_PEOPLE:
+                    if not self._on_cooldown(ck, "crowd_alarm"):
+                        events.append(self._event(
+                            "crowd_alarm", -1, "pedestrians",
+                            f"🚨 CROWD ALARM: {n} people gathered — curfew violation risk!",
+                            "high", [x1, y1, x2, y2],
+                        ))
+                        self._set_cooldown(ck, "crowd_alarm")
+                # ── Crowd formation warning: ≥4 but <5 → MEDIUM severity ─────
+                elif not self._on_cooldown(ck, "crowd"):
                     events.append(self._event(
                         "crowd_formation", -1, "pedestrians",
-                        f"⚠️ Crowd: {len(cluster_idx)} people clustered within "
-                        f"{CROWD_RADIUS_PX} px",
+                        f"⚠️ Crowd: {n} people clustered within {CROWD_RADIUS_PX} px",
                         "medium", [x1, y1, x2, y2],
                     ))
                     self._set_cooldown(ck, "crowd")

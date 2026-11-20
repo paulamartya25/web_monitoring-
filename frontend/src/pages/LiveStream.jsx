@@ -37,6 +37,8 @@ export default function LiveStream() {
   const [vehicleCounts, setVehicleCounts] = useState({})
   const [zoneAlerts, setZoneAlerts]       = useState([])
   const [anomalyEvents, setAnomalyEvents] = useState([])
+  const [crowdAlarm, setCrowdAlarm] = useState(false)
+  const crowdBeepRef = useRef(null)
   const [trafficSummary, setTrafficSummary] = useState(null)
 
   // ── Speed Calibration state ────────────────────────────────────────
@@ -122,7 +124,27 @@ export default function LiveStream() {
         setFrameCount(data.frame_count || 0)
         setVehicleCounts(data.vehicle_counts || {})
         setZoneAlerts(data.zone_alerts || [])
-        setAnomalyEvents(data.anomaly_events || [])
+        const events = data.anomaly_events || []
+        setAnomalyEvents(events)
+        // ── Crowd alarm ─────────────────────────────────────────────────
+        const hasCrowdAlarm = events.some(e => e.type === 'crowd_alarm')
+        if (hasCrowdAlarm) {
+          setCrowdAlarm(true)
+          // Audio beep via Web Audio API
+          try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)()
+            const osc = ctx.createOscillator()
+            const gain = ctx.createGain()
+            osc.connect(gain); gain.connect(ctx.destination)
+            osc.type = 'square'; osc.frequency.value = 880
+            gain.gain.setValueAtTime(0.3, ctx.currentTime)
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4)
+            osc.start(); osc.stop(ctx.currentTime + 0.4)
+          } catch (_) {}
+          // Auto-clear alarm after 4 seconds
+          clearTimeout(crowdBeepRef.current)
+          crowdBeepRef.current = setTimeout(() => setCrowdAlarm(false), 4000)
+        }
         setTrafficSummary(data.traffic_summary || null)
       } catch (err) { console.error('WS parse error', err) }
     }
@@ -295,6 +317,21 @@ export default function LiveStream() {
           </div>
         )}
       </div>
+
+      {/* ── Crowd Alarm Banner ─────────────────────────────────────────── */}
+      {crowdAlarm && (
+        <div className="mb-4 animate-pulse bg-red-700/60 border-2 border-red-500 rounded-xl p-4 flex items-center gap-3 shadow-lg shadow-red-900/40">
+          <span className="text-3xl">🚨</span>
+          <div className="flex-1">
+            <p className="text-white font-bold text-base tracking-wide">CROWD ALARM — CURFEW VIOLATION RISK</p>
+            <p className="text-red-200 text-xs mt-0.5">5+ people detected clustered in one area. Immediate dispersal recommended.</p>
+          </div>
+          <button
+            onClick={() => setCrowdAlarm(false)}
+            className="text-red-200 hover:text-white text-xs px-3 py-1.5 rounded-lg border border-red-400/50 hover:border-red-300 transition-colors"
+          >Dismiss</button>
+        </div>
+      )}
 
       {/* Zone Alerts Banner */}
       {zoneAlerts.length > 0 && (

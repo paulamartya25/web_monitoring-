@@ -10,12 +10,28 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
 
 from core.config import settings
+from core.detector import YOLODetector
 from db.database import get_db
 from db.models import Detection
 from utils.drawing import draw_detections, encode_image_to_base64
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/detect", tags=["detection"])
+
+# ── Per-request model loader (cached by model_size key) ──────────────────────
+_model_cache: dict[str, YOLODetector] = {}
+
+def get_detector(app_detector: YOLODetector, model_size: str | None) -> YOLODetector:
+    """
+    If model_size matches the app-level default model, return it.
+    Otherwise load / return a cached YOLODetector for that model_size.
+    """
+    if not model_size or model_size == app_detector.model_size:
+        return app_detector
+    if model_size not in _model_cache:
+        logger.info(f"Loading on-demand model: {model_size}")
+        _model_cache[model_size] = YOLODetector(model_size)
+    return _model_cache[model_size]
 
 
 @router.post("/image")
@@ -24,6 +40,7 @@ async def detect_image(
     file: UploadFile = File(...),
     conf: float = Query(default=None),
     iou: float = Query(default=None),
+    model_size: str = Query(default=None, description="Model key e.g. yolov8s_visdrone_best, yolov8n, yolov8s"),
     db: AsyncSession = Depends(get_db),
 ):
     """Detect objects in an uploaded image. Returns annotated image (base64) + detections JSON."""
@@ -39,7 +56,7 @@ async def detect_image(
     if image is None:
         raise HTTPException(status_code=400, detail="Could not decode image. Ensure the file is a valid image.")
 
-    detector = request.app.state.detector
+    detector = get_detector(request.app.state.detector, model_size)
     tracker = request.app.state.tracker
     activity_desc = request.app.state.activity
 
@@ -75,6 +92,7 @@ async def detect_image(
         "annotated_image": b64,
         "total_detections": len(described),
         "annotated_url": f"/uploads/{save_name}",
+        "model_used": detector.model_size,
     }
 
 
@@ -84,6 +102,7 @@ async def detect_video(
     file: UploadFile = File(...),
     conf: float = Query(default=None),
     iou: float = Query(default=None),
+    model_size: str = Query(default=None, description="Model key e.g. yolov8s_visdrone_best, yolov8n, yolov8s"),
     db: AsyncSession = Depends(get_db),
 ):
     """Detect objects in an uploaded video. Returns annotated video URL + per-frame log."""
@@ -104,7 +123,7 @@ async def detect_video(
     with open(input_path, "wb") as f:
         f.write(contents)
 
-    detector = request.app.state.detector
+    detector = get_detector(request.app.state.detector, model_size)
     tracker = request.app.state.tracker
     activity_desc = request.app.state.activity
     activity_desc.reset()
@@ -149,6 +168,7 @@ async def detect_video(
         "per_frame_log": per_frame_log[:50],
         "download_filename": output_name,
         "message": f"Processed {len(per_frame_log)} frames successfully.",
+        "model_used": detector.model_size,
     }
 
 
