@@ -205,6 +205,12 @@ class ModelEvaluator:
             "recall":     round(recall,    4),   # from val_results.box.mr
             "f1_score":   round(f1,        4),   # 2*P*R/(P+R)
             "metric_source": "ultralytics_val",  # explicit audit trail
+            # Per-class AP@0.5 — indexed by class name for the comparison and table features
+            "class_names": class_names_list,
+            "per_class_ap": {
+                class_names_list[i]: round(float(per_class_ap[i]) * 100, 2)
+                for i in range(min(len(class_names_list), len(per_class_ap)))
+            },
             "charts": {
                 "confusion_matrix": cm_path,
                 "roc_curve":        roc_path,

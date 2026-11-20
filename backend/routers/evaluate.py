@@ -1,5 +1,8 @@
 import os
+import json
+import time
 import logging
+import tempfile
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, BackgroundTasks
@@ -213,3 +216,149 @@ async def get_chart(run_id: int, chart_type: str, db: AsyncSession = Depends(get
         raise HTTPException(status_code=404, detail="Chart not yet generated.")
 
     return FileResponse(chart_path, media_type="image/png")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# NEW ENDPOINTS: per-class AP, run comparison, speed benchmark
+# ─────────────────────────────────────────────────────────────────────────────
+
+@router.get("/results/{run_id}/per-class")
+async def get_per_class_ap(run_id: int, db: AsyncSession = Depends(get_db)):
+    """Return per-class AP@0.5 for a completed evaluation run (read from metrics.json)."""
+    result = await db.execute(select(EvaluationRun).where(EvaluationRun.id == run_id))
+    run = result.scalar_one_or_none()
+    if not run:
+        raise HTTPException(status_code=404, detail="Run not found.")
+    if run.status != "completed":
+        raise HTTPException(status_code=400, detail=f"Run is not completed (status={run.status}).")
+    if not run.report_path:
+        raise HTTPException(status_code=404, detail="No report path for this run.")
+
+    metrics_path = os.path.join(run.report_path, "metrics.json")
+    if not os.path.exists(metrics_path):
+        raise HTTPException(status_code=404, detail="metrics.json not found for this run.")
+
+    with open(metrics_path) as f:
+        metrics = json.load(f)
+
+    per_class = metrics.get("per_class_ap", {})
+    class_names = metrics.get("class_names", [])
+
+    return {
+        "run_id": run_id,
+        "model": run.model_size,
+        "dataset": run.dataset_name,
+        "per_class_ap50": per_class,
+        "class_names": class_names,
+        "map50": run.map50,
+    }
+
+
+@router.get("/compare")
+async def compare_runs(
+    run_a: int = Query(..., description="ID of first run"),
+    run_b: int = Query(..., description="ID of second run"),
+    db: AsyncSession = Depends(get_db),
+):
+    """Compare two evaluation runs side-by-side."""
+    async def _get_run(rid):
+        res = await db.execute(select(EvaluationRun).where(EvaluationRun.id == rid))
+        r = res.scalar_one_or_none()
+        if not r:
+            raise HTTPException(status_code=404, detail=f"Run {rid} not found.")
+        return r
+
+    ra = await _get_run(run_a)
+    rb = await _get_run(run_b)
+
+    def _run_dict(r):
+        return {
+            "id":          r.id,
+            "timestamp":   r.timestamp.isoformat() if r.timestamp else None,
+            "model":       r.model_size,
+            "dataset":     r.dataset_name,
+            "status":      r.status,
+            "map50":       r.map50,
+            "map5095":     r.map5095,
+            "precision":   r.precision,
+            "recall":      r.recall,
+            "f1_score":    r.f1_score,
+            "error_message": r.error_message,
+        }
+
+    def _delta(va, vb):
+        """Return signed difference vb - va, or None if either is missing."""
+        if va is None or vb is None:
+            return None
+        return round(vb - va, 4)
+
+    return {
+        "run_a": _run_dict(ra),
+        "run_b": _run_dict(rb),
+        "delta": {
+            "map50":     _delta(ra.map50,     rb.map50),
+            "map5095":   _delta(ra.map5095,   rb.map5095),
+            "precision": _delta(ra.precision, rb.precision),
+            "recall":    _delta(ra.recall,    rb.recall),
+            "f1_score":  _delta(ra.f1_score,  rb.f1_score),
+        },
+    }
+
+
+@router.post("/speed-test")
+async def speed_test(
+    model_size: str = Query(default="yolov8s_visdrone_best"),
+    n_runs: int = Query(default=30, ge=5, le=100),
+):
+    """
+    Benchmark inference speed: run model on a synthetic test image n_runs times
+    and return mean latency (ms) and estimated FPS.
+    Uses a real 640×640 image to avoid I/O bias.
+    """
+    import numpy as np
+    from ultralytics import YOLO
+
+    allowed_models = {"yolov8n", "yolov8s", "yolov8s_visdrone_best"}
+    if model_size not in allowed_models:
+        raise HTTPException(status_code=400, detail=f"model_size must be one of {allowed_models}")
+
+    CUSTOM_MODELS = {
+        "yolov8s_visdrone_best": os.path.join(settings.MODELS_DIR, "yolov8s_visdrone_best.pt"),
+    }
+    model_path = CUSTOM_MODELS.get(model_size, f"{model_size}.pt")
+
+    try:
+        model = YOLO(model_path)
+        # Warm up — first inference is always slow (model loading, JIT)
+        dummy = np.random.randint(0, 255, (640, 640, 3), dtype=np.uint8)
+        for _ in range(3):
+            model.predict(dummy, verbose=False, device="cpu")
+
+        # Timed runs
+        times = []
+        for _ in range(n_runs):
+            img = np.random.randint(0, 255, (640, 640, 3), dtype=np.uint8)
+            t0 = time.perf_counter()
+            model.predict(img, verbose=False, device="cpu")
+            times.append((time.perf_counter() - t0) * 1000)  # ms
+
+        mean_ms  = round(float(np.mean(times)),   2)
+        std_ms   = round(float(np.std(times)),    2)
+        min_ms   = round(float(np.min(times)),    2)
+        max_ms   = round(float(np.max(times)),    2)
+        fps      = round(1000 / mean_ms,          1)
+
+        return {
+            "model":    model_size,
+            "n_runs":   n_runs,
+            "device":   "cpu",
+            "imgsz":    640,
+            "mean_ms":  mean_ms,
+            "std_ms":   std_ms,
+            "min_ms":   min_ms,
+            "max_ms":   max_ms,
+            "fps":      fps,
+            "note":     "Inference only (no I/O). Warm-up runs excluded.",
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Speed test failed: {e}")
