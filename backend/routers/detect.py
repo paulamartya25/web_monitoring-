@@ -56,6 +56,13 @@ async def detect_image(
     if image is None:
         raise HTTPException(status_code=400, detail="Could not decode image. Ensure the file is a valid image.")
 
+    # ── Auto lighting → model routing ──────────────────────────────────────
+    if model_size == "auto":
+        from core.lighting_classifier import classify_lighting
+        lighting_info = classify_lighting(image)
+        model_size = lighting_info["recommended_model"]
+    else:
+        lighting_info = None
     detector = get_detector(request.app.state.detector, model_size)
     tracker = request.app.state.tracker
     activity_desc = request.app.state.activity
@@ -93,6 +100,7 @@ async def detect_image(
         "total_detections": len(described),
         "annotated_url": f"/uploads/{save_name}",
         "model_used": detector.model_size,
+        "lighting_info": lighting_info,
     }
 
 

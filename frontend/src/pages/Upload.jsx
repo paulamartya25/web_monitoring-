@@ -14,7 +14,7 @@ export default function Upload() {
   const [loading, setLoading] = useState(false)
   const [progress, setProgress] = useState(0)
   const [conf, setConf] = useState(0.15)   // 15% default — VisDrone night images need low threshold
-  const [model, setModel] = useState('yolov8s_visdrone_best')
+  const [model, setModel] = useState('auto')
   const [crowdAlarmResult, setCrowdAlarmResult] = useState(false)
 
   const onDrop = useCallback((accepted) => {
@@ -93,7 +93,7 @@ export default function Upload() {
 
   // Show aerial vs ground-level hint
   const AERIAL_MODELS = new Set(['yolov8s_visdrone_best', 'best_1280', 'best_640'])
-  const isAerial = AERIAL_MODELS.has(model)
+  const isAerial = model !== 'auto' && AERIAL_MODELS.has(model)
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
@@ -105,21 +105,39 @@ export default function Upload() {
         <ModelSelector value={model} onChange={setModel} />
       </div>
 
-      {/* Camera-mode hint */}
-      <div className={`mb-4 rounded-xl p-3 border flex items-start gap-3
-        ${isAerial ? 'bg-indigo-900/20 border-indigo-600/40' : 'bg-yellow-900/20 border-yellow-600/40'}`}>
-        <span className="text-xl shrink-0">{isAerial ? '📡' : '📷'}</span>
-        <div>
-          <p className={`text-sm font-semibold ${isAerial ? 'text-indigo-300' : 'text-yellow-300'}`}>
-            {isAerial ? 'Aerial / Drone Model selected' : 'Ground-Level Model selected'}
-          </p>
-          <p className="text-xs text-gray-400 mt-0.5">
-            {isAerial
-              ? 'Best for overhead drone or CCTV footage. Ground-level photos may show fewer detections.'
-              : 'Best for standard photos, webcam, dashcam, or eye-level images.'}
-          </p>
+      {/* Camera-mode / auto-routing hint */}
+      {model === 'auto' ? (
+        <div className="mb-4 rounded-xl p-3 border bg-emerald-900/20 border-emerald-600/40 flex items-start gap-3">
+          <span className="text-xl shrink-0">🤖</span>
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-emerald-300">Auto Smart Routing enabled</p>
+            <p className="text-xs text-gray-400 mt-0.5">
+              Lighting + perspective are auto-detected from the image (day/night/dusk · aerial/ground-level).
+              The best model is selected automatically. Routing info shown after detection.
+            </p>
+          </div>
+          {result?.lighting_info && (
+            <span className="shrink-0 text-xs bg-emerald-800/50 text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-600/40">
+              {result.lighting_info.reason}
+            </span>
+          )}
         </div>
-      </div>
+      ) : (
+        <div className={`mb-4 rounded-xl p-3 border flex items-start gap-3
+          ${isAerial ? 'bg-indigo-900/20 border-indigo-600/40' : 'bg-yellow-900/20 border-yellow-600/40'}`}>
+          <span className="text-xl shrink-0">{isAerial ? '📡' : '📷'}</span>
+          <div>
+            <p className={`text-sm font-semibold ${isAerial ? 'text-indigo-300' : 'text-yellow-300'}`}>
+              {isAerial ? 'Aerial / Drone Model selected' : 'Ground-Level Model selected'}
+            </p>
+            <p className="text-xs text-gray-400 mt-0.5">
+              {isAerial
+                ? 'Best for overhead drone or CCTV footage. Ground-level photos may show fewer detections.'
+                : 'Best for standard photos, webcam, dashcam, or eye-level images.'}
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-6">
         {/* Left: Upload + controls */}
