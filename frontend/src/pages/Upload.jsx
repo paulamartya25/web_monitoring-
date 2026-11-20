@@ -13,8 +13,9 @@ export default function Upload() {
   const [result, setResult] = useState(null)
   const [loading, setLoading] = useState(false)
   const [progress, setProgress] = useState(0)
-  const [conf, setConf] = useState(0.25)
+  const [conf, setConf] = useState(0.15)   // 15% default — VisDrone night images need low threshold
   const [model, setModel] = useState('yolov8s_visdrone_best')
+  const [crowdAlarmResult, setCrowdAlarmResult] = useState(false)
 
   const onDrop = useCallback((accepted) => {
     const f = accepted[0]
@@ -49,8 +50,18 @@ export default function Upload() {
         onUploadProgress: (e) => setProgress(Math.round(e.loaded / e.total * 50)),
       })
       setProgress(100)
-      setResult({ ...res.data, fileType })
-      toast.success(`Detected ${res.data.total_detections ?? res.data.total_frames} ${fileType === 'image' ? 'objects' : 'frames'}!`)
+      const data = res.data
+      setResult({ ...data, fileType })
+
+      // ── Crowd alarm check on Upload results ──────────────────────────────
+      const PEDESTRIAN_CLASSES = new Set(['pedestrian', 'people', 'person'])
+      const pedCount = (data.detections || []).filter(
+        d => PEDESTRIAN_CLASSES.has(d.class_name?.toLowerCase())
+      ).length
+      setCrowdAlarmResult(pedCount >= 5)
+
+      toast.success(`Detected ${data.total_detections ?? data.total_frames} ${fileType === 'image' ? 'objects' : 'frames'}!`)
+      if (pedCount >= 5) toast.error(`🚨 CROWD ALARM: ${pedCount} people detected!`, { duration: 6000 })
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Detection failed')
     } finally {
@@ -69,7 +80,16 @@ export default function Upload() {
     toast.success('Image downloaded!')
   }
 
-  const confColor = (c) => c >= 0.7 ? 'text-green-400' : c >= 0.5 ? 'text-yellow-400' : 'text-red-400'
+  const confColor = (c) => c >= 0.5 ? 'text-yellow-400' : c >= 0.3 ? 'text-green-400' : 'text-blue-400'
+
+  // Smart confidence label
+  const confLabel = (c) => {
+    if (c <= 0.15) return '⚡ Max sensitivity — catches everything'
+    if (c <= 0.25) return '✅ Recommended for night / aerial'
+    if (c <= 0.40) return '⚖️ Balanced'
+    if (c <= 0.55) return '🎯 Precise — may miss faint objects'
+    return '⚠️ Very strict — expect few/no detections'
+  }
 
   // Show aerial vs ground-level hint
   const AERIAL_MODELS = new Set(['yolov8s_visdrone_best', 'best_1280', 'best_640'])
@@ -149,13 +169,14 @@ export default function Upload() {
               <span className={`text-sm font-bold ${confColor(conf)}`}>{Math.round(conf * 100)}%</span>
             </div>
             <input
-              type="range" min="0.1" max="0.9" step="0.05" value={conf}
+              type="range" min="0.10" max="0.65" step="0.05" value={conf}
               onChange={(e) => setConf(parseFloat(e.target.value))}
               className="w-full accent-indigo-500"
             />
-            <div className="flex justify-between text-xs text-gray-600">
-              <span>10% (more detections)</span>
-              <span>90% (fewer, precise)</span>
+            <p className="text-xs text-center text-gray-500">{confLabel(conf)}</p>
+            <div className="flex justify-between text-xs text-gray-700">
+              <span>10% → max recall</span>
+              <span>65% → high precision</span>
             </div>
           </div>
 
@@ -177,6 +198,20 @@ export default function Upload() {
         <div className="space-y-4">
           {result ? (
             <>
+              {/* ── Crowd Alarm Banner ──────────────────────────────────── */}
+              {crowdAlarmResult && (
+                <div className="animate-pulse bg-red-700/60 border-2 border-red-500 rounded-xl p-4 flex items-center gap-3 shadow-lg shadow-red-900/40">
+                  <span className="text-3xl">🚨</span>
+                  <div className="flex-1">
+                    <p className="text-white font-bold text-sm tracking-wide">CROWD ALARM — CURFEW VIOLATION RISK</p>
+                    <p className="text-red-200 text-xs mt-0.5">5+ people detected in this image. Immediate dispersal action recommended.</p>
+                  </div>
+                  <button onClick={() => setCrowdAlarmResult(false)}
+                    className="text-red-200 hover:text-white text-xs px-3 py-1 rounded-lg border border-red-400/50 transition-colors">
+                    Dismiss
+                  </button>
+                </div>
+              )}
               {/* Model used badge */}
               {result.model_used && (
                 <div className="text-xs text-indigo-400 font-medium">
